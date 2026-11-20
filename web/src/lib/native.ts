@@ -9,6 +9,7 @@ export interface NativeBridge {
   graphql(id: string, body: string): void
   testHosts(id: string): void
   fetchImage(id: string, url: string): void
+  fetchText(id: string, url: string): void
   openExternal(url: string): void
   startDownload?(id: string, url: string, filename: string, accept: string): void
   getDownloadDir?(): string
@@ -121,6 +122,11 @@ export function nativeTestHosts<T>(): Promise<T> {
 
 export function nativeFetchImage(url: string): Promise<string> {
   return callAsync<{ dataUrl?: string }>((id) => window.OctoDeck!.fetchImage(id, url), 30000).then((p) => p?.dataUrl || '')
+}
+
+export function nativeFetchText(url: string): Promise<{ status: number; text: string }> {
+  return callAsync<{ status?: number; text?: string }>((id) => window.OctoDeck!.fetchText(id, url), 30000)
+    .then((p) => ({ status: p?.status ?? 200, text: p?.text ?? '' }))
 }
 
 export function nativeSetTheme(theme: string): void {

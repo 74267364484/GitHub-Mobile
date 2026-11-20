@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type React from 'react'
 import type { Repository } from '../types'
 import { useApi } from '../lib/hooks'
-import { graphql } from '../lib/api'
+import { fetchWikiHome, graphql } from '../lib/api'
 import { useApp } from '../state/AppState'
 import { Octicon, type IconName } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
@@ -199,12 +199,7 @@ export function RepoWikiPage({ repo, owner, repoName }: { repo: Repository; owne
     let alive = true
     setLoading(true)
     setError('')
-    fetch(`/api/raw?url=${encodeURIComponent(`https://raw.githubusercontent.com/wiki/${full}/Home.md`)}`, { cache: 'no-store' })
-      .then(async (res) => {
-        if (res.status === 404) return ''
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.text()
-      })
+    fetchWikiHome(full)
       .then((content) => { if (alive) setText(content) })
       .catch((e) => { if (alive) setError(e instanceof Error ? e.message : '读取 Wiki 失败') })
       .finally(() => { if (alive) setLoading(false) })

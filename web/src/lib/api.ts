@@ -5,7 +5,7 @@ import type {
 import { b64EncodeUnicode, splitRepo } from './format'
 import { HOSTNAMES, defaultHostState, mappingById } from './hosts'
 import {
-  initNativeBridge, isNative, nativeClearToken, nativeConfig, nativeFetchImage,
+  initNativeBridge, isNative, nativeClearToken, nativeConfig, nativeFetchImage, nativeFetchText,
   nativeGraphql, nativeOpenExternal, nativeRequest, nativeSetHost, nativeSetToken, nativeTestHosts,
 } from './native'
 
@@ -553,6 +553,18 @@ export async function testHostMappings(): Promise<HostTestResponse> {
   if (!res.ok) throw new ApiError(data.message || '测速失败', res.status)
   const results = (data.results || []).map((r: HostTestResult) => ({ ...r, ms: r.ms ?? r.elapsed }))
   return { proxy: Boolean(data.proxy), results }
+}
+
+export async function fetchWikiHome(full: string): Promise<string> {
+  const url = `https://raw.githubusercontent.com/wiki/${full}/Home.md`
+  if (isNative()) {
+    const res = await nativeFetchText(url)
+    return res.status === 404 ? '' : res.text
+  }
+  const res = await fetch(`/api/raw?url=${encodeURIComponent(url)}`, { cache: 'no-store' })
+  if (res.status === 404) return ''
+  if (!res.ok) throw new ApiError(`读取 Wiki 失败（HTTP ${res.status}）`, res.status)
+  return res.text()
 }
 
 export async function loadImage(url: string): Promise<string> {

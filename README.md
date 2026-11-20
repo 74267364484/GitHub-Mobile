@@ -21,8 +21,8 @@
 ## 下载
 
 - 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.5.0.apk`
-- 大小：3,981,282 字节（约 3.8 MB），debug 签名，可直接侧载
-- SHA-256：`a09bdf7ee0121aeb9fa1a351666a5560b3ec9eb55df09cc79595e68887e408c2`
+- 大小：4,213,778 字节（约 4.0 MB），debug 签名，可直接侧载
+- SHA-256：`d2ac28331941d6e169a591f08a13d6b2d91f6851060c593a6bb55e646540ead0`
 
 ---
 
@@ -234,6 +234,7 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 - `:app:assembleDebug`：`versionCode 6`、`versionName 1.5.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
 - 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
 - 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
+- Wiki 在 APK 中通过原生桥读取 `raw.githubusercontent.com/wiki/`，不依赖本地 Node 服务。
 - 模拟器首次点击「下载 ZIP」会弹出系统文件夹选择器；选择并保存后，第二次下载不再弹窗，直接使用已保存目录（实测 `MainActivity` 保持前台，无 DocumentsUI）。
 - 设置页「更改文件夹」会重新打开系统文件夹选择器；目录标签显示为 `Download`，可随时更换。
 - 模拟器沙箱无外网，实际文件写入以真机为准；文件名补全与 `Content-Disposition` 逻辑已实现。

@@ -306,6 +306,37 @@ class OctoBridge(
     // ---------------- images through the mapped client ----------------
 
     @JavascriptInterface
+    fun fetchText(id: String, url: String) {
+        io.execute {
+            try {
+                val uri = Uri.parse(url)
+                val host = uri.host.orEmpty()
+                if (uri.scheme != "https" || host != "raw.githubusercontent.com" || !uri.path.orEmpty().startsWith("/wiki/")) {
+                    reject(id, "文本地址不在白名单")
+                    return@execute
+                }
+                val req = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "GitHub Mobile/1.5 Android")
+                    .header("Accept", "text/plain")
+                    .build()
+                client.newCall(req).execute().use { response ->
+                    if (response.code == 404) {
+                        resolve(id, JSONObject().put("status", 404).put("text", "").toString())
+                        return@execute
+                    }
+                    if (!response.isSuccessful) {
+                        reject(id, "HTTP ${response.code}")
+                        return@execute
+                    }
+                    resolve(id, JSONObject().put("status", response.code).put("text", response.body?.string().orEmpty()).toString())
+                }
+            } catch (e: Exception) {
+                reject(id, e.message ?: "读取文本失败")
+            }
+        }
+    }
+    @JavascriptInterface
     fun fetchImage(id: String, url: String) {
         io.execute {
             try {
