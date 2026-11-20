@@ -1,0 +1,9 @@
+{
+  "name": "octodeck-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "https-proxy-agent": "^7.0.6"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "defaultMappingId": "sg",
+  "testHost": "api.github.com",
+  "hostnames": {
+    "github.com": "网页 / Git",
+    "api.github.com": "REST API",
+    "raw.githubusercontent.com": "Raw 文件",
+    "github.githubassets.com": "静态资源",
+    "codeload.github.com": "源码包"
+  },
+  "mappings": [
+    {
+      "id": "official",
+      "name": "官方直连",
+      "short": "官方",
+      "region": "系统 DNS",
+      "description": "不修改解析，使用系统 DNS 与运营商线路。",
+      "hosts": {}
+    },
+    {
+      "id": "sg",
+      "name": "亚太 · 新加坡",
+      "short": "新加坡",
+      "region": "Singapore · AS8075",
+      "recommended": true,
+      "description": "微软新加坡边缘节点，国内多数网络可达性较好。",
+      "hosts": {
+        "github.com": "20.205.243.166",
+        "api.github.com": "20.205.243.168",
+        "raw.githubusercontent.com": "185.199.108.133",
+        "github.githubassets.com": "185.199.108.154",
+        "codeload.github.com": "140.82.112.9"
+      }
+    },
+    {
+      "id": "jp",
+      "name": "亚太 · 日本",
+      "short": "东京",
+      "region": "Tokyo · AS8075",
+      "description": "东京边缘节点，联通 / 移动线路常用。",
+      "hosts": {
+        "github.com": "20.27.177.113",
+        "api.github.com": "20.27.177.116",
+        "raw.githubusercontent.com": "185.199.109.133",
+        "github.githubassets.com": "185.199.109.154",
+        "codeload.github.com": "140.82.112.9"
+      }
+    },
+    {
+      "id": "ae",
+      "name": "中东 · 迪拜",
+      "short": "迪拜",
+      "region": "Dubai · AS8075",
+      "description": "迪拜边缘节点，作为备用线路。",
+      "hosts": {
+        "github.com": "20.233.83.145",
+        "api.github.com": "20.233.83.146",
+        "raw.githubusercontent.com": "185.199.110.133",
+        "github.githubassets.com": "185.199.110.154",
+        "codeload.github.com": "140.82.112.9"
+      }
+    },
+    {
+      "id": "us-east",
+      "name": "北美 · 弗吉尼亚",
+      "short": "弗吉尼亚",
+      "region": "Ashburn · AS36459",
+      "description": "GitHub 自有网络 AS36459，传统主线。",
+      "hosts": {
+        "github.com": "140.82.112.3",
+        "api.github.com": "140.82.112.6",
+        "raw.githubusercontent.com": "185.199.108.133",
+        "github.githubassets.com": "185.199.108.154",
+        "codeload.github.com": "140.82.112.9"
+      }
+    },
+    {
+      "id": "us-west",
+      "name": "北美 · 西雅图",
+      "short": "西雅图",
+      "region": "Seattle · AS36459",
+      "description": "GitHub 西海岸边缘节点。",
+      "hosts": {
+        "github.com": "140.82.116.3",
+        "api.github.com": "140.82.116.6",
+        "raw.githubusercontent.com": "185.199.111.133",
+        "github.githubassets.com": "185.199.111.154",
+        "codeload.github.com": "140.82.112.9"
+      }
+    },
+    {
+      "id": "custom",
+      "name": "自定义 Hosts",
+      "short": "自定义",
+      "region": "Manual",
+      "description": "手动指定每个域名的 IPv4 地址，留空则走系统 DNS。",
+      "hosts": {}
+    }
+  ]
+}
