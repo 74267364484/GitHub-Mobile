@@ -162,6 +162,7 @@ export function DashboardPage() {
               <a className="side-repo" key={r.id} href={`#/${r.owner.login}/${r.name}`}>
                 <Octicon name={r.private ? 'lock' : 'repo'} size={16} />
                 <span className="side-repo-name">{r.full_name}</span>
+                {r.private && <span className="side-repo-vis">私有</span>}
                 {r.language && <i className="lang-dot" style={{ background: languageColor(r.language) }} />}
               </a>
             ))}

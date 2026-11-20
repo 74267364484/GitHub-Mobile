@@ -2684,3 +2684,16 @@ a.repo-meta-item:hover { color: var(--accent-fg); }
   .release-asset-name { flex-basis: calc(100% - 30px); }
   .release-asset-meta { order: 3; width: 100%; padding-left: 24px; }
 }
+
+/* v1.2 · private repo badge in dashboard side list */
+.side-repo-vis {
+  flex: 0 0 auto;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  color: var(--fg-muted);
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+}
