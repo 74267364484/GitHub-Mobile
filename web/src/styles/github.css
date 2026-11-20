@@ -2831,3 +2831,11 @@ a.demo-banner-action { text-decoration: none; display: inline-flex; align-items:
   .discussion-body { padding: 0 12px 12px 34px; }
   .wiki-card { padding: 14px; }
 }
+
+/* v1.5 · insights in-app reports */
+.insight-stats { display: flex; flex-wrap: wrap; gap: 16px; margin: 8px 0 12px; font-size: 13px; color: var(--fg-muted); }
+.insight-stats strong { color: var(--fg-default); font-size: 18px; margin-right: 4px; }
+.traffic-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; padding-top: 8px; }
+.traffic-bar { flex: 1; display: flex; align-items: flex-end; height: 100%; background: var(--bg-inset); border-radius: 2px; overflow: hidden; }
+.traffic-bar span { width: 100%; background: var(--success-emphasis); border-radius: 2px; }
+.frequency-bars { height: 70px; }

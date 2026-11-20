@@ -32,6 +32,16 @@ export function InsightsPage({
   const languagesState = useApi<Record<string, number>>(`/repos/${full}/languages`)
   const contributorsState = useApi<GitHubUser[]>(`/repos/${full}/contributors?per_page=20`)
   const commitsState = useApi<GitCommit[]>(`/repos/${full}/commits?per_page=10`)
+  const trafficViews = useApi<{ count: number; uniques: number; views: { timestamp: string; count: number; uniques: number }[] }>(
+    tab === 'traffic' ? `/repos/${full}/traffic/views` : null,
+  )
+  const trafficClones = useApi<{ count: number; uniques: number }>(
+    tab === 'traffic' ? `/repos/${full}/traffic/clones` : null,
+  )
+  const participation = useApi<{ all: number[] }>(tab === 'frequency' ? `/repos/${full}/stats/participation` : null)
+  const forksState = useApi<{ id: number; full_name: string; owner: { login: string; avatar_url: string }; stargazers_count: number; updated_at: string }[]>(
+    tab === 'forks' ? `/repos/${full}/forks?per_page=30&sort=newest` : null,
+  )
 
   const tree = treeState.data?.tree || []
   const paths = useMemo(() => new Set(tree.map((e) => e.path.toLowerCase())), [tree])
@@ -115,7 +125,6 @@ export function InsightsPage({
           <div className="card insight-card">
             <div className="insight-head">
               <h3>{tab === 'contributors' ? '贡献者' : '脉搏'}</h3>
-              <a href={`https://github.com/${full}/graphs/contributors`} target="_blank" rel="noreferrer">在 GitHub 查看 <Octicon name="link-external" size={12} /></a>
             </div>
             <div className="contributor-list">
               {contributors.map((c: any) => (
@@ -139,9 +148,7 @@ export function InsightsPage({
                 <div className="commit-row" key={c.sha}>
                   <Avatar user={c.author || undefined} login={c.commit.author?.name} size={24} />
                   <div className="commit-main">
-                    <a className="commit-msg" href={`https://github.com/${full}/commit/${c.sha}`} target="_blank" rel="noreferrer">
-                      {firstLine(c.commit.message, 90)}
-                    </a>
+                    <span className="commit-msg">{firstLine(c.commit.message, 90)}</span>
                     <div className="commit-meta">{c.author?.login || c.commit.author?.name} · {timeAgo(c.commit.author?.date)}</div>
                   </div>
                   <code className="commit-sha">{c.sha.slice(0, 7)}</code>
@@ -151,19 +158,86 @@ export function InsightsPage({
           </div>
         )}
 
-        {['traffic', 'frequency', 'network', 'forks'].includes(tab) && (
-          <div className="card insight-card insight-external">
-            <Octicon name="graph" size={32} />
-            <h3>此报告请在 GitHub 查看</h3>
-            <p>
-              {tab === 'traffic' && '流量洞察需要推送权限，仅在 github.com 展示。'}
-              {tab === 'frequency' && '代码频率图需要完整提交历史和推送权限。'}
-              {tab === 'network' && '提交网络图在 github.com 渲染。'}
-              {tab === 'forks' && '分叉洞察在 github.com 展示。'}
-            </p>
-            <a className="btn btn-default" href={`https://github.com/${full}/graphs`} target="_blank" rel="noreferrer">
-              在 GitHub 查看洞察 <Octicon name="link-external" size={14} />
-            </a>
+        {tab === 'traffic' && (
+          <div className="card insight-card">
+            <div className="insight-head"><h3>流量</h3></div>
+            {trafficViews.loading && <Skeleton height={60} />}
+            {trafficViews.error && <p className="form-hint">流量数据需要推送权限；未启用时此页不会跳转网页。</p>}
+            {!trafficViews.loading && !trafficViews.error && (
+              <div className="insight-stats">
+                <span><strong>{compact(trafficViews.data?.count || 0)}</strong> 次浏览</span>
+                <span><strong>{compact(trafficViews.data?.uniques || 0)}</strong> 位访客</span>
+                <span><strong>{compact(trafficClones.data?.count || 0)}</strong> 次克隆</span>
+                <span><strong>{compact(trafficClones.data?.uniques || 0)}</strong> 位克隆者</span>
+              </div>
+            )}
+            {!trafficViews.loading && !trafficViews.error && (trafficViews.data?.views || []).length > 0 && (
+              <div className="traffic-bars">
+                {(trafficViews.data?.views || []).slice(-14).map((v) => {
+                  const max = Math.max(...(trafficViews.data?.views || []).map((x) => x.count), 1)
+                  return (
+                    <div className="traffic-bar" key={v.timestamp} title={`${v.timestamp.slice(0, 10)} · ${v.count} 次`}>
+                      <span style={{ height: `${Math.max(4, Math.round((v.count / max) * 100))}%` }} />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'frequency' && (
+          <div className="card insight-card">
+            <div className="insight-head"><h3>代码频率（最近 52 周）</h3></div>
+            {participation.loading && <Skeleton height={60} />}
+            {participation.error && <p className="form-hint">代码频率需要推送权限；未启用时此页不会跳转网页。</p>}
+            {!participation.loading && !participation.error && (
+              <div className="traffic-bars frequency-bars">
+                {(participation.data?.all || []).map((count, i) => {
+                  const max = Math.max(...(participation.data?.all || []), 1)
+                  return <div className="traffic-bar" key={i} title={`第 ${i + 1} 周 · ${count} 次提交`}><span style={{ height: `${Math.max(4, Math.round((count / max) * 100))}%` }} /></div>
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'network' && (
+          <div className="card insight-card">
+            <div className="insight-head"><h3>提交网络（列表视图）</h3></div>
+            <div className="commit-list">
+              {commits.map((c) => (
+                <div className="commit-row" key={c.sha}>
+                  <Avatar user={c.author || undefined} login={c.commit.author?.name} size={24} />
+                  <div className="commit-main">
+                    <span className="commit-msg">{firstLine(c.commit.message, 90)}</span>
+                    <div className="commit-meta">{c.author?.login || c.commit.author?.name} · {timeAgo(c.commit.author?.date)}</div>
+                  </div>
+                  <code className="commit-sha">{c.sha.slice(0, 7)}</code>
+                </div>
+              ))}
+              {!commits.length && !commitsState.loading && <p className="muted">暂无提交数据。</p>}
+            </div>
+          </div>
+        )}
+
+        {tab === 'forks' && (
+          <div className="card insight-card">
+            <div className="insight-head"><h3>分叉</h3></div>
+            {forksState.loading && <Skeleton height={50} />}
+            {forksState.error && <p className="form-hint">{forksState.error.message}</p>}
+            {!forksState.loading && !forksState.error && (
+              <div className="contributor-list">
+                {(forksState.data || []).map((f) => (
+                  <a className="contributor-row" key={f.id} href={`#/${f.full_name}`}>
+                    <img className="avatar" src={f.owner.avatar_url} alt={f.owner.login} width={24} height={24} />
+                    <span className="contributor-name">{f.full_name}</span>
+                    <span className="contributor-count">{compact(f.stargazers_count)} 星 · {timeAgo(f.updated_at)}</span>
+                  </a>
+                ))}
+                {!(forksState.data || []).length && <p className="muted">还没有分叉。</p>}
+              </div>
+            )}
           </div>
         )}
       </div>
