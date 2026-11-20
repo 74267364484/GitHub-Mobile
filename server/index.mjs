@@ -432,7 +432,7 @@ const server = http.createServer(async (req, res) => {
         defaultRepo: DEFAULT_REPO,
         host: hostState,
         native: false,
-        version: '1.4.0',
+        version: '1.5.0',
         proxy: Boolean(PROXY),
       })
       return
@@ -541,6 +541,32 @@ const server = http.createServer(async (req, res) => {
         if (r.headers[h]) outHeaders[h] = r.headers[h]
       }
       res.writeHead(r.status, outHeaders)
+      res.end(r.body)
+      return
+    }
+
+    if (p === '/api/raw') {
+      const src = url.searchParams.get('url') || ''
+      let target
+      try {
+        target = new URL(src)
+      } catch {
+        json(res, 400, { message: '无效地址' })
+        return
+      }
+      if (target.protocol !== 'https:' || target.hostname !== 'raw.githubusercontent.com' || !target.pathname.startsWith('/wiki/')) {
+        json(res, 400, { message: '只允许读取 GitHub Wiki 原始内容' })
+        return
+      }
+      const r = await requestUpstream({
+        url: src,
+        headers: { 'user-agent': 'GitHub Mobile', accept: 'text/plain' },
+        timeout: 25000,
+      })
+      res.writeHead(r.status, {
+        'content-type': r.headers['content-type'] || 'text/plain; charset=utf-8',
+        'cache-control': 'no-store',
+      })
       res.end(r.body)
       return
     }

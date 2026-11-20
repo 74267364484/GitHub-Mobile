@@ -4,27 +4,39 @@
 >
 > 独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是其商标；本项目的名称仅用于说明兼容目标，不代表官方应用。
 
-![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.4.0-black)
+![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.5.0-black)
 
 ## 截图
 
-| 无需登录 · 公开浏览首页 | 私有仓库列表（登录后） |
+| Releases · 下载区置顶、说明可折叠 | Actions 运行详情（作业/步骤） |
 |---|---|
-| ![](docs/screenshots/v14-anon-home.png) | ![](docs/screenshots/v14-private-repos.png) |
-| **Releases 前置到第二个导航** | **手机端代码菜单 · 完整显示** |
-| ![](docs/screenshots/v14-releases.png) | ![](docs/screenshots/v14-mobile-menu.png) |
-| **应用内新建仓库** | **应用内编辑文件** |
-| ![](docs/screenshots/v14-new-repo.png) | ![](docs/screenshots/v14-file-editor.png) |
+| ![](docs/screenshots/v15-releases.png) | ![](docs/screenshots/v15-run-detail.png) |
+| **项目（GraphQL，应用内）** | **讨论（列表/展开/发布）** |
+| ![](docs/screenshots/v15-projects.png) | ![](docs/screenshots/v15-discussions.png) |
+| **安全警报（应用内）** | **更改下载保存位置** |
+| ![](docs/screenshots/v15-security.png) | ![](docs/screenshots/v15-download-dir.png) |
 
 ---
 
 ## 下载
 
-- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.4.0.apk`
-- 大小：3,973,054 字节（约 3.8 MB），debug 签名，可直接侧载
-- SHA-256：`031b644422582bef748a9637e1f191920bf3d25aff42e6cd71f3827436847a51`
+- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.5.0.apk`
+- 大小：3,981,282 字节（约 3.8 MB），debug 签名，可直接侧载
+- SHA-256：`a09bdf7ee0121aeb9fa1a351666a5560b3ec9eb55df09cc79595e68887e408c2`
 
 ---
+
+## v1.5.0 更新
+
+- **Releases 下载不再难找**：资源与源码下载区移到发行说明之前，发行说明默认折叠；点击蓝色标签会在页内跳到下载区，不再打开 GitHub 网页。
+- **Actions 不再跳网页**：点击运行记录打开应用内详情，展示作业与每一步状态；可直接重新运行、取消运行、下载日志。
+- **项目 / Wiki / 讨论 / 安全全部应用内**：
+  - 项目：GraphQL 读取 Projects v2，支持在应用内新建项目；
+  - Wiki：读取并渲染 Wiki 首页（`Home.md`）；
+  - 讨论：GraphQL 列出讨论、页内展开正文、在应用内发起讨论；
+  - 安全：读取 Dependabot 与代码扫描警报、检测 SECURITY.md，不再默认跳转。
+- **下载路径记住并可更换**：Android 首次下载弹出一次文件夹选择器，之后一直保存到该文件夹；可在下载托盘或「设置 → 数据与缓存」里随时更改。
+- **文件名修复**：下载优先使用 `Content-Disposition` 中的真实文件名；缺少扩展名时按 Content-Type 补 `.zip` / `.apk` / `.tar.gz`，避免出现 `.bin`。
 
 ## v1.4.0 更新
 
@@ -80,7 +92,8 @@ GitHub Mobile 不是 GitHub 的封装壳，而是一套按 GitHub 视觉与信�
 | Actions 运行日志 | 每条运行记录右侧下载按钮 | `GET /repos/{owner}/{repo}/actions/runs/{id}/logs` |
 
 - **Web 端**：浏览器请求本地 Node 服务 `/api/download`，服务端按当前 Host 映射连接 GitHub，跟随最多 6 次重定向，流式回传并设置 `Content-Disposition`；前端边接收边显示进度，完成后交给浏览器保存（保存位置由浏览器设置决定）。
-- **Android 端**：点击下载后先弹出系统文件选择器（`ACTION_CREATE_DOCUMENT`），你选择目录与文件名后再开始下载；OkHttp 使用自定义 DNS、自动携带 Keystore 中的 Token，跟随 GitHub → codeload → objects.githubusercontent.com 等重定向，写入你选择的位置。取消选择不会创建文件。
+- **Android 端**：首次下载弹出系统文件夹选择器（`ACTION_OPEN_DOCUMENT_TREE`），授权会持久保存；之后的下载直接写入该文件夹，不再询问。可在下载托盘或设置页随时更换文件夹。OkHttp 使用自定义 DNS、自动携带 Keystore 中的 Token，跟随 GitHub → codeload → objects.githubusercontent.com 等重定向。
+- 下载文件名优先使用 `Content-Disposition` 的真实文件名；没有扩展名时按 Content-Type 补齐，避免 `.bin`。
 - 下载域名白名单、文件名清洗、重定向域名校验均已实现；私有仓库下载同样可用。
 
 ## Host 映射线路
@@ -115,8 +128,12 @@ GitHub Mobile 不是 GitHub 的封装壳，而是一套按 GitHub 视觉与信�
 | Releases | 导航第二位，应用内发布、资源与源码下载 |
 | Issues 列表 / 详情 / 时间线 / 评论 | 列表筛选/搜索；评论可发布（需 Token） |
 | Pull requests 列表 / 会话 / Commits / Files changed | 真实 diff、行号、增删配色；Diff/Patch 下载 |
-| Actions | workflow 列表、run 列表、运行日志下载 |
-| Insights / Security / Projects / Wiki / Discussions | Community 检查清单、语言、贡献者；只读项明确跳 GitHub |
+| Actions | workflow 列表、运行详情（作业/步骤）、重跑/取消/日志下载 |
+| Projects | GraphQL 读取 Projects v2，应用内新建 |
+| Wiki | 读取并渲染 Wiki 首页 |
+| Discussions | 列表、页内展开、应用内发起讨论 |
+| Security | Dependabot / 代码扫描警报、SECURITY.md 检测 |
+| Insights | Community 检查清单、语言、贡献者、提交 |
 | Settings | 只读仓库设置预览 + 危险区跳 GitHub |
 | Profile | 贡献日历、活动、热门仓库、Repositories / Stars |
 | Notifications / Explore / Search | 真实 API，空状态与搜索分页 |
@@ -172,7 +189,7 @@ cd web && npm run dev                # http://127.0.0.1:5173
 
 ```bash
 ./scripts/build-apk.sh
-# 产物：GitHubMobile-1.4.0.apk（debug 签名，可直接侧载）
+# 产物：GitHubMobile-1.5.0.apk（debug 签名，可直接侧载）
 ```
 
 如果 JDK / SDK 不在默认路径：
@@ -214,10 +231,12 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 ### Android
 
 - `:app:testDebugUnitTest`：7 个 JVM 测试全部通过（Host 映射解析、禁用回退、官方直连、自定义合法/非法 IP、状态 JSON 解析与损坏回退）。
-- `:app:assembleDebug`：`versionCode 5`、`versionName 1.4.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
+- `:app:assembleDebug`：`versionCode 6`、`versionName 1.5.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
 - 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
 - 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
-- 模拟器点击「下载 ZIP」会弹出系统文件选择器（默认 Downloads、文件名 `awesome-main.zip`，可改目录与文件名）；按返回取消后，下载托盘项自动移除。沙箱模拟器无外网，实际写入以真机为准。
+- 模拟器首次点击「下载 ZIP」会弹出系统文件夹选择器；选择并保存后，第二次下载不再弹窗，直接使用已保存目录（实测 `MainActivity` 保持前台，无 DocumentsUI）。
+- 设置页「更改文件夹」会重新打开系统文件夹选择器；目录标签显示为 `Download`，可随时更换。
+- 模拟器沙箱无外网，实际文件写入以真机为准；文件名补全与 `Content-Disposition` 逻辑已实现。
 
 ## 已知限制
 

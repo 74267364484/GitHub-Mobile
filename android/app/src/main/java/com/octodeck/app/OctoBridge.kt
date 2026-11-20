@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Base64
 import android.webkit.JavascriptInterface
@@ -81,7 +82,7 @@ class OctoBridge(
             put("defaultRepo", "")
             put("host", hostState.get().toJson())
             put("native", true)
-            put("version", "1.4.0")
+            put("version", "1.5.0")
             put("proxy", false)
         }.toString()
     }
@@ -143,7 +144,7 @@ class OctoBridge(
                     .url("https://api.github.com$path")
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
-                    .header("User-Agent", "GitHub Mobile/1.4 Android")
+                    .header("User-Agent", "GitHub Mobile/1.5 Android")
                 val token = secure.get()
                 if (!token.isNullOrBlank()) builder.header("Authorization", "Bearer $token")
                 val reqBody = if (body.isBlank()) null else body.toRequestBody(jsonMedia)
@@ -197,7 +198,7 @@ class OctoBridge(
                 val req = Request.Builder()
                     .url("https://api.github.com/graphql")
                     .header("Authorization", "Bearer $token")
-                    .header("User-Agent", "GitHub Mobile/1.4 Android")
+                    .header("User-Agent", "GitHub Mobile/1.5 Android")
                     .header("Accept", "application/vnd.github+json")
                     .post(body.toRequestBody(jsonMedia))
                     .build()
@@ -356,8 +357,55 @@ class OctoBridge(
 
     // ---------------- real file downloads ----------------
 
-    /** MainActivity 注入：弹出系统文件选择器，让用户决定保存位置。 */
-    var pickDownloadTarget: ((String, String, String, String) -> Unit)? = null
+    /** MainActivity 注入：没有保存过目录时，弹一次系统目录选择器。 */
+    var askDownloadTree: ((String, String, String, String) -> Unit)? = null
+
+    /** MainActivity 注入：设置在设置页更改下载目录。 */
+    var askDownloadDir: ((String) -> Unit)? = null
+
+    private fun savedTree(): Uri? {
+        val raw = context.getSharedPreferences("octodeck", Context.MODE_PRIVATE)
+            .getString("download_tree", null) ?: return null
+        return try { Uri.parse(raw) } catch (_: Exception) { null }
+    }
+
+    private fun treeLabel(uri: Uri): String {
+        val id = try { DocumentsContract.getTreeDocumentId(uri) } catch (_: Exception) { "" }
+        val path = id.substringAfter(':', id)
+        return if (path.isBlank()) "所选文件夹" else path
+    }
+
+    @JavascriptInterface
+    fun getDownloadDir(): String {
+        val tree = savedTree()
+        return JSONObject().apply {
+            put("configured", tree != null)
+            put("uri", tree?.toString() ?: "")
+            put("label", tree?.let { treeLabel(it) } ?: "下载/GitHub Mobile")
+        }.toString()
+    }
+
+    @JavascriptInterface
+    fun chooseDownloadDir(id: String) {
+        val ask = askDownloadDir
+        if (ask == null) {
+            reject(id, "当前环境不支持选择目录")
+            return
+        }
+        ask(id)
+    }
+
+    fun resolveDownloadDir(id: String, uri: Uri) {
+        resolve(id, JSONObject().apply {
+            put("configured", true)
+            put("uri", uri.toString())
+            put("label", treeLabel(uri))
+        }.toString())
+    }
+
+    fun rejectDownloadDir(id: String, message: String) {
+        reject(id, message)
+    }
 
     @JavascriptInterface
     fun startDownload(id: String, url: String, filename: String, accept: String) {
@@ -368,9 +416,14 @@ class OctoBridge(
             return
         }
         val name = sanitizeName(filename).ifBlank { "download" }
-        val picker = pickDownloadTarget
-        if (picker != null) {
-            picker(id, url, name, accept)
+        val saved = savedTree()
+        if (saved != null) {
+            startDownloadToTree(id, url, name, accept, saved)
+            return
+        }
+        val ask = askDownloadTree
+        if (ask != null) {
+            ask(id, url, name, accept)
         } else {
             startDownloadToDefault(id, url, name, accept)
         }
@@ -384,16 +437,16 @@ class OctoBridge(
         downloadPool.execute { runDownload(id, url, filename, accept, null) }
     }
 
-    fun startDownloadToUri(id: String, url: String, filename: String, accept: String, target: Uri) {
-        downloadPool.execute { runDownload(id, url, filename, accept, target) }
+    fun startDownloadToTree(id: String, url: String, filename: String, accept: String, tree: Uri) {
+        downloadPool.execute { runDownload(id, url, filename, accept, tree) }
     }
 
-    private fun runDownload(id: String, rawUrl: String, rawName: String, accept: String, target: Uri?) {
+    private fun runDownload(id: String, rawUrl: String, rawName: String, accept: String, tree: Uri?) {
         try {
             var name = sanitizeName(rawName)
             val builder = Request.Builder()
                 .url(rawUrl)
-                .header("User-Agent", "GitHub Mobile/1.4 Android")
+                .header("User-Agent", "GitHub Mobile/1.5 Android")
                 .header("Accept", accept.ifBlank { "application/octet-stream" })
                 .header("Accept-Encoding", "identity")
                 .header("X-GitHub-Api-Version", "2022-11-28")
@@ -420,12 +473,15 @@ class OctoBridge(
                     downloadError(id, "服务器返回了空响应")
                     return
                 }
-                if (name.isBlank()) name = filenameFromDisposition(response.header("Content-Disposition"))
-                if (name.isBlank()) name = "download"
+                val dispositionName = filenameFromDisposition(response.header("Content-Disposition"))
+                if (name.isBlank() || name == "download" || name.endsWith(".bin")) {
+                    if (dispositionName.isNotBlank()) name = dispositionName
+                }
+                if (name.isBlank() || name == "download") name = urlFilename(rawUrl) ?: "download"
+                name = ensureExtension(name, response.header("Content-Type"))
                 val total = body.contentLength()
-                val saved = if (target != null) {
-                    saveToUri(target, body.byteStream()) { received -> downloadProgress(id, received, total) }
-                    target.toString()
+                val saved = if (tree != null) {
+                    saveToTree(tree, name, body.byteStream()) { received -> downloadProgress(id, received, total) }
                 } else {
                     saveToDownloads(name, body.byteStream(), total) { received ->
                         downloadProgress(id, received, total)
@@ -438,10 +494,44 @@ class OctoBridge(
         }
     }
 
-    private fun saveToUri(target: Uri, input: InputStream, onProgress: (Long) -> Unit) {
-        val output = context.contentResolver.openOutputStream(target)
-            ?: throw IllegalStateException("无法写入所选位置")
-        output.use { copyStream(input, it, onProgress) }
+    private fun saveToTree(tree: Uri, name: String, input: InputStream, onProgress: (Long) -> Unit): String {
+        val resolver = context.contentResolver
+        val parent = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+        val doc = DocumentsContract.createDocument(resolver, parent, mimeFor(name), name)
+            ?: throw IllegalStateException("无法在所选目录创建文件")
+        try {
+            resolver.openOutputStream(doc)?.use { output -> copyStream(input, output, onProgress) }
+                ?: throw IllegalStateException("无法写入所选目录")
+            return "${treeLabel(tree)}/$name"
+        } catch (e: Exception) {
+            try { DocumentsContract.deleteDocument(resolver, doc) } catch (_: Exception) {}
+            throw e
+        }
+    }
+
+    private fun urlFilename(rawUrl: String): String? {
+        return try {
+            val path = Uri.parse(rawUrl).lastPathSegment ?: return null
+            sanitizeName(path).ifBlank { null }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun ensureExtension(name: String, contentType: String?): String {
+        if (name.substringAfterLast('.', "").length in 1..5) return name
+        val ext = when (contentType?.substringBefore(';')?.lowercase()) {
+            "application/zip" -> ".zip"
+            "application/x-tar" -> ".tar"
+            "application/gzip" -> ".tar.gz"
+            "application/vnd.android.package-archive" -> ".apk"
+            "application/pdf" -> ".pdf"
+            "image/png" -> ".png"
+            "image/jpeg" -> ".jpg"
+            "text/plain" -> ".txt"
+            else -> ""
+        }
+        return name + ext
     }
 
     private fun saveToDownloads(

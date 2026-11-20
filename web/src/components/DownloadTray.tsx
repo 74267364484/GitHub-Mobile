@@ -1,18 +1,34 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { clearFinishedDownloads, dismissDownload, getDownloads, subscribeDownloads } from '../lib/downloads'
+import { isNative, nativeChooseDownloadDir, nativeDownloadDir, type DownloadDirInfo } from '../lib/native'
 import { formatBytes } from '../lib/format'
 import { Octicon } from './Octicon'
 
 export function DownloadTray() {
   const items = useSyncExternalStore(subscribeDownloads, getDownloads)
   const [open, setOpen] = useState(false)
+  const [dir, setDir] = useState<DownloadDirInfo | null>(() => nativeDownloadDir())
   const prevActive = useRef(0)
   const active = items.filter((i) => i.state === 'downloading' || i.state === 'queued').length
 
   useEffect(() => {
     if (active > prevActive.current) setOpen(true)
     prevActive.current = active
+    if (active > 0) setDir(nativeDownloadDir())
   }, [active])
+
+  useEffect(() => {
+    if (open) setDir(nativeDownloadDir())
+  }, [open])
+
+  const changeDir = async () => {
+    try {
+      const next = await nativeChooseDownloadDir()
+      setDir(next)
+    } catch {
+      // 用户取消或当前环境不支持
+    }
+  }
 
   if (!items.length) return null
 
@@ -74,6 +90,13 @@ export function DownloadTray() {
             )
           })}
           <button className="download-tray-clear" onClick={clearFinishedDownloads}>清除已完成</button>
+          <div className="download-dir-row">
+            <span className="download-dir-label">
+              <Octicon name="file-directory" size={14} />
+              {isNative() ? (dir?.label || '下载/GitHub Mobile') : '浏览器默认下载位置'}
+            </span>
+            {isNative() && <button className="download-dir-change" onClick={changeDir}>更改保存位置</button>}
+          </div>
         </div>
       )}
     </div>

@@ -207,6 +207,33 @@ export async function gh<T>(path: string, init: { method?: string; body?: any } 
   }
 }
 
+export async function graphql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  const body: any = { query }
+  if (variables) body.variables = variables
+  if (demoMode) throw new ApiError('登录 GitHub 后才能使用该功能', 401)
+  beginRequest()
+  try {
+    let payload: any
+    if (isNative()) {
+      payload = await nativeGraphql<any>(body)
+    } else {
+      const res = await fetch('/api/graphql', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...tokenHeaders() },
+        body: JSON.stringify(body),
+      })
+      payload = await res.json().catch(() => null)
+      if (!res.ok) throw new ApiError(payload?.message || `GraphQL 返回 ${res.status}`, res.status, payload)
+    }
+    if (payload?.errors?.length) {
+      throw new ApiError(payload.errors[0]?.message || 'GraphQL 请求失败', 400, payload.errors)
+    }
+    return payload?.data as T
+  } finally {
+    endRequest()
+  }
+}
+
 export async function loadDemoData(): Promise<SnapshotData> {
   if (demo) return demo
   if (!demoPromise) {

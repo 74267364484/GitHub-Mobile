@@ -11,6 +11,8 @@ export interface NativeBridge {
   fetchImage(id: string, url: string): void
   openExternal(url: string): void
   startDownload?(id: string, url: string, filename: string, accept: string): void
+  getDownloadDir?(): string
+  chooseDownloadDir?(id: string): void
   setTheme?(theme: string): void
 }
 
@@ -127,4 +129,23 @@ export function nativeSetTheme(theme: string): void {
 
 export function nativeOpenExternal(url: string): void {
   window.OctoDeck?.openExternal(url)
+}
+
+export interface DownloadDirInfo {
+  configured: boolean
+  uri: string
+  label: string
+}
+
+export function nativeDownloadDir(): DownloadDirInfo | null {
+  if (!isNative()) return null
+  try {
+    return JSON.parse(window.OctoDeck!.getDownloadDir?.() || 'null') as DownloadDirInfo
+  } catch {
+    return null
+  }
+}
+
+export function nativeChooseDownloadDir(): Promise<DownloadDirInfo> {
+  return callAsync<DownloadDirInfo>((id) => window.OctoDeck!.chooseDownloadDir!(id), 120000)
 }

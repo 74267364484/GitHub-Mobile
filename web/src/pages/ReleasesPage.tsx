@@ -57,69 +57,14 @@ export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owne
       )}
 
       {!state.loading && releases.map((r, i) => (
-        <div className="release-card card" key={r.id}>
-          <div className="release-card-head">
-            <div className="release-card-title">
-              <Octicon name="tag" size={16} />
-              <a href={r.html_url} target="_blank" rel="noreferrer">{r.tag_name}</a>
-              {i === 0 && !r.draft && <span className="latest-badge">最新</span>}
-              {r.prerelease && <span className="pre-badge">预发行</span>}
-              {r.draft && <span className="draft-badge">草稿</span>}
-            </div>
-            <a className="release-external" href={r.html_url} target="_blank" rel="noreferrer" aria-label="在 GitHub 打开发行版">
-              <Octicon name="link-external" size={16} />
-            </a>
-          </div>
-          <div className="release-card-meta">
-            {r.author && (
-              <>
-                <Avatar user={r.author} size={20} />
-                <a href={`#/user/${r.author.login}`}>{r.author.login}</a>
-                {' '}发布了此版本 {timeAgo(r.published_at || r.created_at)}
-              </>
-            )}
-            {!r.author && <>发布于 {formatDate(r.published_at || r.created_at)}</>}
-          </div>
-          {r.name && <h3 className="release-name">{r.name}</h3>}
-          {r.body && (
-            <div className="release-body">
-              <Markdown text={r.body} owner={owner} repo={repoName} branch={repo.default_branch} />
-            </div>
-          )}
-          {r.assets.length > 0 && (
-            <div className="release-assets">
-              <div className="release-assets-head">资源 <span>{r.assets.length}</span></div>
-              {r.assets.map((a) => (
-                <div className="release-asset" key={a.id}>
-                  <Octicon name="package" size={16} />
-                  <span className="release-asset-name">{a.name}</span>
-                  <span className="release-asset-meta">{formatBytes(a.size)} · {a.download_count.toLocaleString()} 次下载</span>
-                  <button
-                    className="btn btn-sm btn-default"
-                    onClick={() => startDownload({ kind: 'release-asset', repo: full, assetId: a.id, filename: a.name })}
-                  >
-                    <Octicon name="download" size={14} /> 下载
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="release-source">
-            <span className="release-source-label">源码</span>
-            <button
-              className="btn btn-sm btn-default"
-              onClick={() => startDownload({ kind: 'repo-zip', repo: full, ref: r.tag_name, filename: `${repoName}-${r.tag_name}.zip` })}
-            >
-              <Octicon name="download" size={14} /> ZIP
-            </button>
-            <button
-              className="btn btn-sm btn-default"
-              onClick={() => startDownload({ kind: 'repo-tar', repo: full, ref: r.tag_name, filename: `${repoName}-${r.tag_name}.tar.gz` })}
-            >
-              <Octicon name="download" size={14} /> TAR.GZ
-            </button>
-          </div>
-        </div>
+        <ReleaseCard
+          key={r.id}
+          release={r}
+          latest={i === 0}
+          full={full}
+          repoName={repoName}
+          defaultBranch={repo.default_branch}
+        />
       ))}
 
       {!state.loading && releases.length === 0 && (
@@ -146,6 +91,102 @@ export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owne
             showToast('发行版已发布', 'success')
           }}
         />
+      )}
+    </div>
+  )
+}
+
+function ReleaseCard({
+  release: r, latest, full, repoName, defaultBranch,
+}: {
+  release: Release
+  latest: boolean
+  full: string
+  repoName: string
+  defaultBranch: string
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const assetsId = `release-${r.id}-assets`
+  const scrollToDownloads = () => {
+    document.getElementById(assetsId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  return (
+    <div className="release-card card">
+      <div className="release-card-head">
+        <div className="release-card-title">
+          <Octicon name="tag" size={16} />
+          <button className="release-tag-link" onClick={scrollToDownloads} title="跳到下载">
+            {r.tag_name}
+          </button>
+          {latest && !r.draft && <span className="latest-badge">最新</span>}
+          {r.prerelease && <span className="pre-badge">预发行</span>}
+          {r.draft && <span className="draft-badge">草稿</span>}
+        </div>
+        <a className="release-external" href={r.html_url} target="_blank" rel="noreferrer" aria-label="在 GitHub 打开发行版">
+          <Octicon name="link-external" size={16} />
+        </a>
+      </div>
+      <div className="release-card-meta">
+        {r.author && (
+          <>
+            <Avatar user={r.author} size={20} />
+            <a href={`#/user/${r.author.login}`}>{r.author.login}</a>
+            {' '}发布了此版本 {timeAgo(r.published_at || r.created_at)}
+          </>
+        )}
+        {!r.author && <>发布于 {formatDate(r.published_at || r.created_at)}</>}
+      </div>
+
+      <div className="release-downloads" id={assetsId}>
+        {r.assets.length > 0 && (
+          <div className="release-downloads-block">
+            <div className="release-downloads-label">资源 {r.assets.length}</div>
+            {r.assets.map((a) => (
+              <div className="release-asset" key={a.id}>
+                <Octicon name="package" size={16} />
+                <span className="release-asset-name">{a.name}</span>
+                <span className="release-asset-meta">{formatBytes(a.size)} · {a.download_count.toLocaleString()} 次下载</span>
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => startDownload({ kind: 'release-asset', repo: full, assetId: a.id, filename: a.name })}
+                >
+                  <Octicon name="download" size={14} /> 下载
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="release-source">
+          <span className="release-source-label">源码</span>
+          <button
+            className="btn btn-sm btn-default"
+            onClick={() => startDownload({ kind: 'repo-zip', repo: full, ref: r.tag_name, filename: `${repoName}-${r.tag_name}.zip` })}
+          >
+            <Octicon name="download" size={14} /> ZIP
+          </button>
+          <button
+            className="btn btn-sm btn-default"
+            onClick={() => startDownload({ kind: 'repo-tar', repo: full, ref: r.tag_name, filename: `${repoName}-${r.tag_name}.tar.gz` })}
+          >
+            <Octicon name="download" size={14} /> TAR.GZ
+          </button>
+        </div>
+      </div>
+
+      {r.name && <h3 className="release-name">{r.name}</h3>}
+      {r.body && (
+        <>
+          <button className="release-notes-toggle" onClick={() => setExpanded((v) => !v)}>
+            <Octicon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} />
+            {expanded ? '收起发行说明' : '展开发行说明'}
+          </button>
+          {expanded && (
+            <div className="release-body">
+              <Markdown text={r.body} owner={full.split('/')[0]} repo={full.split('/')[1]} branch={defaultBranch} />
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -49,15 +49,33 @@ class MainActivity : ComponentActivity() {
     private lateinit var bridge: OctoBridge
     private var splashHidden = false
     private var pendingDownload: PendingDownload? = null
+    private var pendingDirId: String? = null
 
     private data class PendingDownload(val id: String, val url: String, val name: String, val accept: String)
 
-    private val createDownload = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+    private val pickDownloadTree = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         val pending = pendingDownload
+        val dirId = pendingDirId
         pendingDownload = null
+        pendingDirId = null
+        if (uri == null) {
+            if (pending != null) bridge.downloadCancelled(pending.id)
+            if (dirId != null) bridge.rejectDownloadDir(dirId, "已取消选择文件夹")
+            return@registerForActivityResult
+        }
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        } catch (_: Exception) {
+        }
+        getSharedPreferences("octodeck", MODE_PRIVATE).edit().putString("download_tree", uri.toString()).apply()
         if (pending != null) {
-            if (uri == null) bridge.downloadCancelled(pending.id)
-            else bridge.startDownloadToUri(pending.id, pending.url, pending.name, pending.accept, uri)
+            bridge.startDownloadToTree(pending.id, pending.url, pending.name, pending.accept, uri)
+        }
+        if (dirId != null) {
+            bridge.resolveDownloadDir(dirId, uri)
         }
     }
 
@@ -92,14 +110,25 @@ class MainActivity : ComponentActivity() {
         HostConfig.load(this)
         setupWebView()
         bridge = OctoBridge(this, webView) { theme -> applyTheme(theme) }
-        bridge.pickDownloadTarget = { id, url, name, accept ->
+        bridge.askDownloadTree = { id, url, name, accept ->
             runOnUiThread {
                 pendingDownload = PendingDownload(id, url, name, accept)
                 try {
-                    createDownload.launch(name)
+                    pickDownloadTree.launch(null)
                 } catch (e: Exception) {
                     pendingDownload = null
                     bridge.startDownloadToDefault(id, url, name, accept)
+                }
+            }
+        }
+        bridge.askDownloadDir = { id ->
+            runOnUiThread {
+                pendingDirId = id
+                try {
+                    pickDownloadTree.launch(null)
+                } catch (e: Exception) {
+                    pendingDirId = null
+                    bridge.rejectDownloadDir(id, "无法打开文件夹选择器")
                 }
             }
         }
@@ -176,7 +205,7 @@ class MainActivity : ComponentActivity() {
             javaScriptCanOpenWindowsAutomatically = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " GitHub Mobile/1.4 Android"
+            userAgentString = userAgentString + " GitHub Mobile/1.5 Android"
         }
 
         val assetLoader = WebViewAssetLoader.Builder()

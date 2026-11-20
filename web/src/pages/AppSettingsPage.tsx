@@ -10,6 +10,7 @@ import {
   HOST_LABELS, HOSTNAMES, effectiveHosts, hostSummary, mappingById,
 } from '../lib/hosts'
 import { invalidateCache, loadDemoData, refreshDemo } from '../lib/api'
+import { isNative, nativeChooseDownloadDir, nativeDownloadDir, type DownloadDirInfo } from '../lib/native'
 import { compact } from '../lib/format'
 import type { SnapshotData } from '../types'
 
@@ -34,6 +35,7 @@ export function AppSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [hostOpen, setHostOpen] = useState(false)
   const [snapshotMeta, setSnapshotMeta] = useState<SnapshotData | null>(null)
+  const [downloadDir, setDownloadDir] = useState<DownloadDirInfo | null>(() => nativeDownloadDir())
   useDocumentTitle('设置')
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export function AppSettingsPage() {
     <div className="settings-page app-settings">
       <div className="page-heading">
         <h1>设置</h1>
-        <span className="page-heading-sub">GitHub Mobile v1.4.0</span>
+        <span className="page-heading-sub">GitHub Mobile v1.5.0</span>
       </div>
 
       <div className="settings-layout">
@@ -244,6 +246,34 @@ export function AppSettingsPage() {
           {section === 'data' && (
             <>
               <div className="settings-card card">
+                <div className="settings-card-head">
+                  <h3>下载保存位置</h3>
+                  <p>{isNative() ? 'Android 下载会直接保存到所选文件夹；选择一次后会记住，可随时更换。' : '浏览器下载由浏览器的下载设置决定。'}</p>
+                </div>
+                <div className="data-row">
+                  <span className="data-label">
+                    <Octicon name="file-directory" size={14} /> {isNative() ? (downloadDir?.label || '下载/GitHub Mobile') : '浏览器默认下载位置'}
+                  </span>
+                  {isNative() && (
+                    <Button
+                      size="sm"
+                      icon="file-directory"
+                      onClick={async () => {
+                        try {
+                          const next = await nativeChooseDownloadDir()
+                          setDownloadDir(next)
+                          showToast(`下载位置已改为 ${next.label}`, 'success')
+                        } catch (e) {
+                          showToast(e instanceof Error ? e.message : '未更改下载位置', 'info')
+                        }
+                      }}
+                    >
+                      更改文件夹
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="settings-card card">
                 <div className="settings-card-head"><h3>数据源</h3></div>
                 <div className="data-row">
                   <span className="data-label">当前数据</span>
@@ -290,7 +320,7 @@ export function AppSettingsPage() {
               <div className="about-app-head">
                 <span className="about-app-logo"><Octicon name="mark-github" size={40} /></span>
                 <div>
-                  <h3>GitHub Mobile <span className="about-version">v1.4.0</span></h3>
+                  <h3>GitHub Mobile <span className="about-version">v1.5.0</span></h3>
                   <p>与 GitHub 网页同构的 Android 客户端，内置可切换的 Host 映射。</p>
                 </div>
               </div>

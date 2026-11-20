@@ -6,8 +6,26 @@ import { startDownload } from '../lib/downloads'
 import { useApp } from '../state/AppState'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
-import { Skeleton } from '../components/ui'
+import { Button, Dialog, Skeleton } from '../components/ui'
 import { firstLine, formatDuration, timeAgo } from '../lib/format'
+
+interface RunStep {
+  number: number
+  name: string
+  status: string
+  conclusion: string | null
+}
+
+interface RunJob {
+  id: number
+  name: string
+  status: string
+  conclusion: string | null
+  started_at: string
+  completed_at: string | null
+  html_url: string
+  steps?: RunStep[]
+}
 
 function statusIcon(run: WorkflowRun) {
   if (run.status === 'in_progress' || run.status === 'queued' || run.status === 'waiting') {
@@ -40,12 +58,16 @@ export function ActionsPage({
   const branch = repo.default_branch || 'main'
   const { config, showToast } = useApp()
   const [busyRun, setBusyRun] = useState<number | null>(null)
+  const [selected, setSelected] = useState<WorkflowRun | null>(null)
   const [workflowId, setWorkflowId] = useState<number | null>(null)
   const workflowsState = useApi<{ workflows: Workflow[]; total_count: number }>(`/repos/${full}/actions/workflows`)
   const runsState = useApi<{ workflow_runs: WorkflowRun[]; total_count: number }>(
     workflowId
       ? `/repos/${full}/actions/workflows/${workflowId}/runs?per_page=30`
       : `/repos/${full}/actions/runs?per_page=30`,
+  )
+  const jobsState = useApi<{ jobs: RunJob[] }>(
+    selected ? `/repos/${full}/actions/runs/${selected.id}/jobs?per_page=100` : null,
   )
 
   const workflows = workflowsState.data?.workflows || []
@@ -63,6 +85,7 @@ export function ActionsPage({
       await gh(`/repos/${full}/actions/runs/${runId}/${action}`, { method: 'POST', body: {} })
       invalidateCache()
       runsState.reload()
+      jobsState.reload()
       showToast(action === 'rerun' ? '已重新运行' : '已取消运行', 'success')
     } catch (e) {
       showToast(e instanceof Error ? e.message : '操作失败', 'error')
@@ -124,8 +147,8 @@ export function ActionsPage({
                   key={run.id}
                   role="link"
                   tabIndex={0}
-                  onClick={() => openExternal(run.html_url)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openExternal(run.html_url) }}
+                  onClick={() => setSelected(run)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelected(run) }}
                 >
                   <span className={`run-status ${st.cls}`} title={st.label}>
                     <Octicon name={st.icon as any} size={16} />
@@ -212,6 +235,59 @@ export function ActionsPage({
           </div>
         )}
       </div>
+
+      {selected && (
+        <Dialog
+          title={selected.display_title || firstLine(selected.head_commit?.message, 90) || selected.name}
+          subtitle={`${selected.name} #${selected.run_number} · ${selected.head_branch}`}
+          onClose={() => setSelected(null)}
+          width={720}
+          footer={(
+            <div className="dialog-actions">
+              <Button size="sm" icon="link-external" onClick={() => openExternal(selected.html_url)}>在 GitHub 打开</Button>
+              {selected.status === 'in_progress' || selected.status === 'queued' ? (
+                <Button size="sm" icon="stop" onClick={() => runAction(selected.id, 'cancel')} disabled={busyRun === selected.id}>
+                  取消运行
+                </Button>
+              ) : (
+                <Button size="sm" icon="sync" onClick={() => runAction(selected.id, 'rerun')} disabled={busyRun === selected.id}>
+                  重新运行
+                </Button>
+              )}
+              <Button size="sm" variant="primary" icon="download" onClick={() => startDownload({ kind: 'run-logs', repo: full, runId: selected.id })}>
+                下载日志
+              </Button>
+            </div>
+          )}
+        >
+          {jobsState.loading && <div className="run-jobs"><Skeleton height={60} /><Skeleton height={60} /></div>}
+          {jobsState.error && <div className="form-error">无法加载作业：{jobsState.error.message}</div>}
+          {!jobsState.loading && !jobsState.error && (
+            <div className="run-jobs">
+              {(jobsState.data?.jobs || []).map((job) => (
+                <div className="run-job" key={job.id}>
+                  <div className="run-job-head">
+                    <Octicon name={job.conclusion === 'success' ? 'check-circle-fill' : job.conclusion === 'failure' ? 'x-circle-fill' : job.status === 'in_progress' ? 'dot-fill' : 'clock'} size={16} />
+                    <strong>{job.name}</strong>
+                    <span className={`run-job-status status-${job.conclusion || job.status}`}>{job.conclusion || job.status}</span>
+                  </div>
+                  <div className="run-job-steps">
+                    {(job.steps || []).map((step) => (
+                      <div className={`run-step step-${step.conclusion || step.status}`} key={step.number}>
+                        <span className="run-step-num">{step.number}</span>
+                        <span className="run-step-name">{step.name}</span>
+                        <span className="run-step-state">{step.conclusion || step.status}</span>
+                      </div>
+                    ))}
+                    {!job.steps?.length && <div className="side-empty">暂无步骤信息。</div>}
+                  </div>
+                </div>
+              ))}
+              {!jobsState.data?.jobs?.length && <div className="side-empty">没有作业信息。</div>}
+            </div>
+          )}
+        </Dialog>
+      )}
     </div>
   )
 }
