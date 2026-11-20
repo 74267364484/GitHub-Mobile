@@ -5,7 +5,7 @@ dist/
 *.log
 .tooling/
 .host-state.json
-OctoDeck-*.apk
+Octo*-*.apk
 android/.gradle/
 android/build/
 android/app/build/

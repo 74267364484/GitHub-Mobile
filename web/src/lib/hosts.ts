@@ -63,7 +63,7 @@ export function hostsFileText(state: HostState): string {
   const hosts = effectiveHosts(state)
   if (!Object.keys(hosts).length) return '# 官方直连：不覆盖任何域名'
   const lines = [
-    '# OctoDeck GitHub Host 映射',
+    '# OctoMobile GitHub Host 映射',
     `# ${new Date().toISOString()}`,
     '# 用法：合并到 /etc/hosts（需要管理员权限）',
   ]

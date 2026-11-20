@@ -24,7 +24,7 @@ async function overflow(page, label) {
 }
 
 async function waitAuth(page) {
-  await page.getByRole('heading', { name: '登录到 OctoDeck' }).waitFor({ timeout: 15000 })
+  await page.getByRole('heading', { name: '登录到 OctoMobile' }).waitFor({ timeout: 15000 })
   await page.waitForTimeout(400)
 }
 

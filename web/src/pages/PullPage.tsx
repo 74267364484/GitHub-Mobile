@@ -11,6 +11,7 @@ import { FileDiff } from '../components/DiffView'
 import { Button, ButtonLink, Dropdown, EmptyState, LabelPill, Skeleton, StateBadge } from '../components/ui'
 import { NotFoundPage } from './NotFoundPage'
 import { formatBytes, timeAgo, firstLine } from '../lib/format'
+import { startDownload } from '../lib/downloads'
 import { repoHref } from '../lib/router'
 
 type Tab = 'conversation' | 'commits' | 'checks' | 'files'
@@ -107,6 +108,12 @@ export function PullPage({
               <>
                 <button className="dropdown-item" onClick={() => { close(); openExternal(`https://github.com/${full}/pull/${pr.number}`) }}>
                   <Octicon name="link-external" size={16} /> 在 GitHub 打开
+                </button>
+                <button className="dropdown-item" onClick={() => { close(); startDownload({ kind: 'pr-diff', repo: full, number: pr.number }) }}>
+                  <Octicon name="download" size={16} /> 下载 Diff（.diff）
+                </button>
+                <button className="dropdown-item" onClick={() => { close(); startDownload({ kind: 'pr-patch', repo: full, number: pr.number }) }}>
+                  <Octicon name="download" size={16} /> 下载补丁（.patch）
                 </button>
                 <a className="dropdown-item" href={`#${repoHref(owner, repoName, `/pulls/${pr.number}`)}`} onClick={close}>
                   <Octicon name="link" size={16} /> 复制链接
@@ -241,7 +248,7 @@ export function PullPage({
               <EmptyState icon="check-circle-fill" title="此拉取请求没有检查结果">
                 <p>状态检查由 GitHub Actions 配置，请前往 GitHub 查看详情。</p>
                 <ButtonLink href={`https://github.com/${full}/pull/${pr.number}/checks`} external icon="link-external">
-                  View checks on GitHub
+                  在 GitHub 查看检查
                 </ButtonLink>
               </EmptyState>
             </div>
@@ -256,6 +263,9 @@ export function PullPage({
                     <span>{files.length} 个文件变更</span>
                     <span className="diff-add">+{files.reduce((a, f) => a + f.additions, 0)}</span>
                     <span className="diff-del">−{files.reduce((a, f) => a + f.deletions, 0)}</span>
+                    <button className="btn btn-sm btn-default files-download" onClick={() => startDownload({ kind: 'pr-diff', repo: full, number: pr.number })}>
+                      <Octicon name="download" size={14} /> 下载 Diff
+                    </button>
                   </div>
                   {files.map((f) => (
                     <FileDiff key={f.filename} file={f} owner={owner} repo={repoName} branch={pr.head?.ref || branch} />

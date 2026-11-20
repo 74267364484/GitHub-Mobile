@@ -48,7 +48,7 @@ export function LeftRail() {
         <div className="rail-mobile-head">
           <a href="#/" className="rail-brand" onClick={close}>
             <Octicon name="mark-github" size={24} />
-            <span>OctoDeck</span>
+            <span>OctoMobile</span>
           </a>
           <button className="icon-btn" onClick={close} aria-label="关闭导航">
             <Octicon name="x" size={18} />
@@ -57,7 +57,7 @@ export function LeftRail() {
 
         <HostCard />
 
-        <nav className="rail-nav" aria-label="OctoDeck 导航">
+        <nav className="rail-nav" aria-label="OctoMobile 导航">
           <div className="rail-section-label">主菜单</div>
           <RailLink href="#/" icon="home" label="首页" active={route.kind === 'home'} onClick={close} />
           <RailLink href="#/repos" icon="repo" label="仓库" active={route.kind === 'repositories'} onClick={close} />
@@ -159,12 +159,12 @@ export function LeftRail() {
                 <Octicon name="device-desktop" size={14} />
               </button>
             </div>
-            <a className="rail-settings" href="#/settings" onClick={close} title="OctoDeck 设置">
+            <a className="rail-settings" href="#/settings" onClick={close} title="OctoMobile 设置">
               <Octicon name="gear" size={14} />
             </a>
           </div>
           <div className="rail-version">
-            <span>OctoDeck v1.1.0</span>
+            <span>OctoMobile v1.2.0</span>
             <span>{defaultRepo ? `· ${defaultRepo.split('/')[1]}` : ''}</span>
           </div>
         </div>

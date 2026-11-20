@@ -11,9 +11,9 @@ export function AuthLoading() {
     <div className="auth-page auth-loading-page">
       <div className="auth-loading">
         <span className="auth-loading-logo"><Octicon name="mark-github" size={56} /></span>
-        <div className="auth-loading-brand">OctoDeck</div>
+        <div className="auth-loading-brand">OctoMobile</div>
         <div className="auth-loading-spinner"><Spinner size={22} /></div>
-        <div className="auth-loading-text">正在加载 OctoDeck…</div>
+        <div className="auth-loading-text">正在加载 OctoMobile…</div>
       </div>
     </div>
   )
@@ -59,8 +59,8 @@ export function AuthPage() {
       <header className="auth-top">
         <div className="auth-brand">
           <span className="auth-brand-mark"><Octicon name="mark-github" size={34} /></span>
-          <span className="auth-brand-name">OctoDeck</span>
-          <span className="auth-brand-cn">章鱼台</span>
+          <span className="auth-brand-name">OctoMobile</span>
+          <span className="auth-brand-cn">章鱼移动</span>
         </div>
         <div className="auth-theme" role="group" aria-label="主题">
           <button className={`auth-theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} title="浅色">
@@ -78,9 +78,9 @@ export function AuthPage() {
       <main className="auth-main">
         <div className="auth-card">
           <div className="auth-logo"><Octicon name="mark-github" size={48} /></div>
-          <h1>登录到 OctoDeck</h1>
+          <h1>登录到 OctoMobile</h1>
           <p className="auth-sub">
-            使用 GitHub 个人访问令牌（Token）登录。登录状态保存在本机，下次启动自动恢复。
+            使用 GitHub 个人访问令牌（Token）登录。登录状态保存在本机，下次启动自动恢复；登录后可查看并下载你的私有仓库。
           </p>
 
           {fatal && (
@@ -152,7 +152,7 @@ export function AuthPage() {
         </div>
 
         <div className="auth-foot">
-          <span>OctoDeck v1.1.0</span>
+          <span>OctoMobile v1.2.0</span>
           <span>·</span>
           <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
           <span>·</span>

@@ -66,7 +66,7 @@ export function AppSettingsPage() {
     <div className="settings-page app-settings">
       <div className="page-heading">
         <h1>设置</h1>
-        <span className="page-heading-sub">OctoDeck v1.1.0</span>
+        <span className="page-heading-sub">OctoMobile v1.2.0</span>
       </div>
 
       <div className="settings-layout">
@@ -149,7 +149,7 @@ export function AppSettingsPage() {
               <div className="settings-card card">
                 <div className="settings-card-head"><h3>安全建议</h3></div>
                 <ul className="settings-list">
-                  <li>为 OctoDeck 单独创建一个最小权限的 fine-grained token。</li>
+                  <li>为 OctoMobile 单独创建一个最小权限的 fine-grained token。</li>
                   <li>不要把令牌提交到 Git 仓库或截图分享；泄露后立即在 GitHub 撤销。</li>
                   <li>Android 原生版使用 OkHttp + Keystore 加密存储；浏览器预览版使用 localStorage。</li>
                   <li>本应用不向 GitHub 以外的域名发送令牌。</li>
@@ -206,7 +206,7 @@ export function AppSettingsPage() {
               <div className="settings-card card">
                 <div className="settings-card-head"><h3>工作方式</h3></div>
                 <ul className="settings-list">
-                  <li>只覆盖 OctoDeck 自身的网络请求，不修改系统 DNS，也不写入 /etc/hosts。</li>
+                  <li>只覆盖 OctoMobile 自身的网络请求，不修改系统 DNS，也不写入 /etc/hosts。</li>
                   <li>映射表包含 github.com、api.github.com、raw.githubusercontent.com、github.githubassets.com、codeload.github.com。</li>
                   <li>选择「官方直连」即使用系统 DNS；选择「自定义 Hosts」可为每个域名单独指定 IPv4。</li>
                   <li>线路 IP 可能随 GitHub 调度变化，连接异常时测速或切回官方直连。</li>
@@ -272,7 +272,7 @@ export function AppSettingsPage() {
               <div className="settings-card card">
                 <div className="settings-card-head"><h3>演示数据</h3></div>
                 <p className="settings-paragraph">
-                  OctoDeck 内置一份中性的公开演示数据（sindresorhus/awesome 与 microsoft/vscode）。未登录时可以从登录页进入演示；演示数据不包含任何个人账号、私有仓库或令牌。
+                  OctoMobile 内置一份中性的公开演示数据（sindresorhus/awesome 与 microsoft/vscode）。未登录时可以从登录页进入演示；演示数据不包含任何个人账号、私有仓库或令牌。
                 </p>
                 {snapshotMeta && (
                   <div className="snapshot-stats">
@@ -290,13 +290,13 @@ export function AppSettingsPage() {
               <div className="about-app-head">
                 <span className="about-app-logo"><Octicon name="mark-github" size={40} /></span>
                 <div>
-                  <h3>OctoDeck <span className="about-version">v1.1.0</span></h3>
+                  <h3>OctoMobile <span className="about-version">v1.2.0</span></h3>
                   <p>与 GitHub 网页同构的 Android 客户端，内置可切换的 Host 映射。</p>
                 </div>
               </div>
               <div className="about-app-body">
                 <p>
-                  OctoDeck 用 React 复刻 GitHub 的页面结构、Typography、颜色和组件，并用 Android WebView 打包为 APK。
+                  OctoMobile 用 React 复刻 GitHub 的页面结构、Typography、颜色和组件，并用 Android WebView 打包为 APK。
                   GitHub API 请求通过原生桥接，Host 映射由 OkHttp 自定义 Dns 实现，不修改系统 hosts。
                 </p>
                 <div className="about-app-grid">
@@ -306,7 +306,7 @@ export function AppSettingsPage() {
                   <span><Octicon name="database" size={16} /> 公开演示数据</span>
                 </div>
                 <p className="about-disclaimer">
-                  OctoDeck 是独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是 GitHub, Inc. 的商标。
+                  OctoMobile 是独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是 GitHub, Inc. 的商标。
                 </p>
                 <div className="settings-button-row">
                   <a className="btn btn-sm btn-default" href="https://github.com" target="_blank" rel="noreferrer">github.com <Octicon name="link-external" size={12} /></a>

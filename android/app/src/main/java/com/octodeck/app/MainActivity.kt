@@ -15,6 +15,7 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
+import android.webkit.URLUtil
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -99,7 +100,7 @@ class MainActivity : ComponentActivity() {
             layoutParams = LinearLayout.LayoutParams(dp(104), dp(104))
         }
         val title = TextView(this).apply {
-            text = "OctoDeck"
+            text = "OctoMobile"
             textSize = 24f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(getColor(R.color.splash_fg))
@@ -151,7 +152,7 @@ class MainActivity : ComponentActivity() {
             javaScriptCanOpenWindowsAutomatically = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " OctoDeck/1.1 Android"
+            userAgentString = userAgentString + " OctoMobile/1.2 Android"
         }
 
         val assetLoader = WebViewAssetLoader.Builder()
@@ -193,7 +194,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        webView.setDownloadListener { url, _, _, _, _ -> openExternal(Uri.parse(url)) }
+        webView.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
+            val name = URLUtil.guessFileName(url, contentDisposition, mimeType)
+            bridge.startDownload("web" + System.currentTimeMillis().toString(36), url, name, mimeType.ifBlank { "*/*" })
+        }
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(cm: ConsoleMessage): Boolean {

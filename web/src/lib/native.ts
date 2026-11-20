@@ -10,6 +10,7 @@ export interface NativeBridge {
   testHosts(id: string): void
   fetchImage(id: string, url: string): void
   openExternal(url: string): void
+  startDownload?(id: string, url: string, filename: string, accept: string): void
   setTheme?(theme: string): void
 }
 
@@ -17,6 +18,7 @@ declare global {
   interface Window {
     OctoDeck?: NativeBridge
     __octoDeckResolve?: (id: string, payload: string, error: string) => void
+    __octoDownloadProgress?: (id: string, payload: string) => void
   }
 }
 
@@ -49,6 +51,13 @@ export function initNativeBridge(): void {
     } catch (e) {
       p.reject(e instanceof Error ? e : new Error(String(e)))
     }
+  }
+  window.__octoDownloadProgress = (id: string, payload: string) => {
+    let detail: Record<string, unknown> = {}
+    try {
+      detail = JSON.parse(payload)
+    } catch {}
+    window.dispatchEvent(new CustomEvent('octo-download', { detail: { id, ...detail } }))
   }
 }
 

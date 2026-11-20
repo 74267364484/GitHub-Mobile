@@ -94,7 +94,7 @@ export async function loadConfig(): Promise<GHConfig> {
     }
   } else {
     const res = await fetch('/api/config', { headers: tokenHeaders(), cache: 'no-store' })
-    if (!res.ok) throw new ApiError('无法连接 OctoDeck 本地服务', res.status)
+    if (!res.ok) throw new ApiError('无法连接 OctoMobile 本地服务', res.status)
     cfg = (await res.json()) as GHConfig
     cfg.native = false
   }

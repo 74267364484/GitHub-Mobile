@@ -5,6 +5,7 @@ import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
 import { ButtonLink, Skeleton } from '../components/ui'
 import { formatBytes, formatDate, timeAgo } from '../lib/format'
+import { startDownload } from '../lib/downloads'
 
 export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owner: string; repoName: string }) {
   const full = `${owner}/${repoName}`
@@ -63,15 +64,33 @@ export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owne
               {r.assets.map((a) => (
                 <div className="release-asset" key={a.id}>
                   <Octicon name="package" size={16} />
-                  <a href={a.browser_download_url} target="_blank" rel="noreferrer">{a.name}</a>
+                  <span className="release-asset-name">{a.name}</span>
                   <span className="release-asset-meta">{formatBytes(a.size)} · {a.download_count.toLocaleString()} 次下载</span>
-                  <a className="btn btn-sm btn-default" href={a.browser_download_url} target="_blank" rel="noreferrer">
+                  <button
+                    className="btn btn-sm btn-default"
+                    onClick={() => startDownload({ kind: 'release-asset', repo: full, assetId: a.id, filename: a.name })}
+                  >
                     <Octicon name="download" size={14} /> 下载
-                  </a>
+                  </button>
                 </div>
               ))}
             </div>
           )}
+          <div className="release-source">
+            <span className="release-source-label">源码</span>
+            <button
+              className="btn btn-sm btn-default"
+              onClick={() => startDownload({ kind: 'repo-zip', repo: full, ref: r.tag_name, filename: `${repoName}-${r.tag_name}.zip` })}
+            >
+              <Octicon name="download" size={14} /> ZIP
+            </button>
+            <button
+              className="btn btn-sm btn-default"
+              onClick={() => startDownload({ kind: 'repo-tar', repo: full, ref: r.tag_name, filename: `${repoName}-${r.tag_name}.tar.gz` })}
+            >
+              <Octicon name="download" size={14} /> TAR.GZ
+            </button>
+          </div>
         </div>
       ))}
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OctoDeck</string>
-    <string name="splash_subtitle">与 GitHub 同构 · 内置 Host 映射</string>
+    <string name="app_name">OctoMobile</string>
+    <string name="splash_subtitle">GitHub 手机版 · 内置 Host 加速</string>
     <string name="splash_loading">正在加载…</string>
 </resources>

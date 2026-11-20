@@ -1,8 +1,12 @@
 package com.octodeck.app
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -16,6 +20,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
@@ -36,6 +44,7 @@ class OctoBridge(
     private val secure = SecurePrefs(context)
     private val io = Executors.newFixedThreadPool(4)
     private val testPool = Executors.newFixedThreadPool(8)
+    private val downloadPool = Executors.newFixedThreadPool(2)
     private val hostState = AtomicReference(loadHostState())
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val bodyMethods = setOf("POST", "PUT", "PATCH")
@@ -72,7 +81,7 @@ class OctoBridge(
             put("defaultRepo", "")
             put("host", hostState.get().toJson())
             put("native", true)
-            put("version", "1.1.0")
+            put("version", "1.2.0")
             put("proxy", false)
         }.toString()
     }
@@ -134,7 +143,7 @@ class OctoBridge(
                     .url("https://api.github.com$path")
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
-                    .header("User-Agent", "OctoDeck/1.1 Android")
+                    .header("User-Agent", "OctoMobile/1.2 Android")
                 val token = secure.get()
                 if (!token.isNullOrBlank()) builder.header("Authorization", "Bearer $token")
                 val reqBody = if (body.isBlank()) null else body.toRequestBody(jsonMedia)
@@ -188,7 +197,7 @@ class OctoBridge(
                 val req = Request.Builder()
                     .url("https://api.github.com/graphql")
                     .header("Authorization", "Bearer $token")
-                    .header("User-Agent", "OctoDeck/1.1 Android")
+                    .header("User-Agent", "OctoMobile/1.2 Android")
                     .header("Accept", "application/vnd.github+json")
                     .post(body.toRequestBody(jsonMedia))
                     .build()
@@ -236,7 +245,7 @@ class OctoBridge(
                                 try {
                                     val req = Request.Builder()
                                         .url("https://api.github.com/rate_limit")
-                                        .header("User-Agent", "OctoDeck-Healthcheck")
+                                        .header("User-Agent", "OctoMobile-Healthcheck")
                                         .header("Accept", "application/vnd.github+json")
                                         .build()
                                     testClient.newCall(req).execute().use { r ->
@@ -307,7 +316,7 @@ class OctoBridge(
                 }
                 val req = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "Mozilla/5.0 OctoDeck")
+                    .header("User-Agent", "Mozilla/5.0 OctoMobile")
                     .header("Accept", "image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8")
                     .build()
                 client.newCall(req).execute().use { response ->
@@ -345,6 +354,211 @@ class OctoBridge(
         return IMAGE_HOSTS.any { host == it || host.endsWith(".$it") }
     }
 
+    // ---------------- real file downloads ----------------
+
+    @JavascriptInterface
+    fun startDownload(id: String, url: String, filename: String, accept: String) {
+        downloadPool.execute {
+            runDownload(id, url, filename, accept)
+        }
+    }
+
+    private fun runDownload(id: String, rawUrl: String, rawName: String, accept: String) {
+        try {
+            val uri = Uri.parse(rawUrl)
+            val host = uri.host.orEmpty()
+            if (uri.scheme != "https" || !allowedDownloadHost(host)) {
+                downloadError(id, "下载域名不在白名单")
+                return
+            }
+            var name = sanitizeName(rawName)
+            val builder = Request.Builder()
+                .url(rawUrl)
+                .header("User-Agent", "OctoMobile/1.2 Android")
+                .header("Accept", accept.ifBlank { "application/octet-stream" })
+                .header("Accept-Encoding", "identity")
+                .header("X-GitHub-Api-Version", "2022-11-28")
+            secure.get()?.takeIf { it.isNotBlank() }?.let { builder.header("Authorization", "Bearer $it") }
+
+            val downloadClient = client.newBuilder()
+                .readTimeout(0, TimeUnit.MILLISECONDS)
+                .writeTimeout(0, TimeUnit.MILLISECONDS)
+                .callTimeout(0, TimeUnit.MILLISECONDS)
+                .build()
+
+            downloadClient.newCall(builder.build()).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val detail = try {
+                        response.body?.string()?.take(300)
+                    } catch (_: Exception) {
+                        null
+                    }
+                    downloadError(id, "HTTP ${response.code}" + (detail?.takeIf { it.isNotBlank() }?.let { "：$it" } ?: ""))
+                    return
+                }
+                val body = response.body
+                if (body == null) {
+                    downloadError(id, "服务器返回了空响应")
+                    return
+                }
+                if (name.isBlank()) name = filenameFromDisposition(response.header("Content-Disposition"))
+                if (name.isBlank()) name = "download"
+                val total = body.contentLength()
+                val saved = saveToDownloads(name, body.byteStream(), total) { received ->
+                    downloadProgress(id, received, total)
+                }
+                downloadDone(id, saved, total)
+            }
+        } catch (e: Exception) {
+            downloadError(id, e.message ?: "下载失败")
+        }
+    }
+
+    private fun saveToDownloads(
+        name: String,
+        input: InputStream,
+        total: Long,
+        onProgress: (Long) -> Unit,
+    ): String {
+        val mime = mimeFor(name)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, name)
+                put(MediaStore.Downloads.MIME_TYPE, mime)
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/OctoMobile")
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val target = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: throw IllegalStateException("无法创建下载文件")
+            try {
+                resolver.openOutputStream(target)?.use { output ->
+                    copyStream(input, output, onProgress)
+                } ?: throw IllegalStateException("无法写入下载文件")
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(target, values, null, null)
+                return "Downloads/OctoMobile/$name"
+            } catch (e: Exception) {
+                try { resolver.delete(target, null, null) } catch (_: Exception) {}
+                throw e
+            }
+        }
+        val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir
+        dir.mkdirs()
+        val file = uniqueFile(dir, name)
+        FileOutputStream(file).use { output -> copyStream(input, output, onProgress) }
+        return file.absolutePath
+    }
+
+    private fun copyStream(input: InputStream, output: OutputStream, onProgress: (Long) -> Unit) {
+        val buffer = ByteArray(64 * 1024)
+        var received = 0L
+        var last = 0L
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            output.write(buffer, 0, read)
+            received += read
+            val now = System.currentTimeMillis()
+            if (now - last >= 200) {
+                last = now
+                onProgress(received)
+            }
+        }
+        output.flush()
+        onProgress(received)
+    }
+
+    private fun uniqueFile(dir: File, name: String): File {
+        val dot = name.lastIndexOf('.')
+        val stem = if (dot > 0) name.substring(0, dot) else name
+        val ext = if (dot > 0) name.substring(dot) else ""
+        var candidate = File(dir, name)
+        var index = 1
+        while (candidate.exists()) {
+            candidate = File(dir, "$stem($index)$ext")
+            index++
+        }
+        return candidate
+    }
+
+    private fun sanitizeName(raw: String): String {
+        val cleaned = raw.replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001f]"), "_").trim().trimStart('.')
+        return cleaned.take(180)
+    }
+
+    private fun filenameFromDisposition(value: String?): String {
+        if (value.isNullOrBlank()) return ""
+        val star = Regex("filename\\*\\s*=\\s*UTF-8''([^;]+)", RegexOption.IGNORE_CASE).find(value)
+        if (star != null) {
+            return try {
+                sanitizeName(Uri.decode(star.groupValues[1].trim().trim('"')))
+            } catch (_: Exception) {
+                ""
+            }
+        }
+        val plain = Regex("filename\\s*=\\s*\"?([^\";]+)", RegexOption.IGNORE_CASE).find(value)
+        return plain?.let { sanitizeName(it.groupValues[1]) } ?: ""
+    }
+
+    private fun mimeFor(name: String): String {
+        return when (name.substringAfterLast('.', "").lowercase()) {
+            "zip" -> "application/zip"
+            "gz", "tgz" -> "application/gzip"
+            "tar" -> "application/x-tar"
+            "diff", "patch", "txt", "md", "json", "yml", "yaml", "xml", "log", "csv" -> "text/plain"
+            "png" -> "image/png"
+            "jpg", "jpeg" -> "image/jpeg"
+            "gif" -> "image/gif"
+            "svg" -> "image/svg+xml"
+            "webp" -> "image/webp"
+            "pdf" -> "application/pdf"
+            "apk" -> "application/vnd.android.package-archive"
+            "jar" -> "application/java-archive"
+            "mp4" -> "video/mp4"
+            "mp3" -> "audio/mpeg"
+            else -> "application/octet-stream"
+        }
+    }
+
+    private fun allowedDownloadHost(host: String): Boolean {
+        if (host.isBlank()) return false
+        if (host.endsWith(".githubusercontent.com")) return true
+        return DOWNLOAD_HOSTS.any { host == it || host.endsWith(".$it") }
+    }
+
+    private fun downloadProgress(id: String, received: Long, total: Long) {
+        val payload = JSONObject()
+            .put("state", "downloading")
+            .put("received", received)
+            .put("total", if (total > 0) total else JSONObject.NULL)
+        emitDownload(id, payload.toString())
+    }
+
+    private fun downloadDone(id: String, path: String, total: Long) {
+        val payload = JSONObject()
+            .put("state", "done")
+            .put("path", path)
+            .put("total", if (total > 0) total else JSONObject.NULL)
+        emitDownload(id, payload.toString())
+    }
+
+    private fun downloadError(id: String, message: String) {
+        val payload = JSONObject().put("state", "error").put("error", message)
+        emitDownload(id, payload.toString())
+    }
+
+    private fun emitDownload(id: String, payload: String) {
+        val script = "window.__octoDownloadProgress && window.__octoDownloadProgress(${JSONObject.quote(id)}, ${JSONObject.quote(payload)})"
+        webView.post {
+            try {
+                webView.evaluateJavascript(script, null)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     // ---------------- JS callbacks ----------------
 
     private fun resolve(id: String, payload: String) {
@@ -370,11 +584,22 @@ class OctoBridge(
     fun shutdown() {
         io.shutdownNow()
         testPool.shutdownNow()
+        downloadPool.shutdownNow()
         client.connectionPool.evictAll()
     }
 
     companion object {
         private const val MAX_IMAGE_BYTES = 3 * 1024 * 1024
+        private val DOWNLOAD_HOSTS = listOf(
+            "api.github.com",
+            "github.com",
+            "codeload.github.com",
+            "raw.githubusercontent.com",
+            "objects.githubusercontent.com",
+            "release-assets.githubusercontent.com",
+            "github-releases.githubusercontent.com",
+            "uploads.github.com",
+        )
         private val IMAGE_HOSTS = listOf(
             "github.com",
             "avatars.githubusercontent.com",

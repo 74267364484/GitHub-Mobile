@@ -3,15 +3,6 @@
     <item
         android:width="104dp"
         android:height="104dp"
-        android:gravity="center">
-        <shape android:shape="rectangle">
-            <corners android:radius="26dp" />
-            <solid android:color="#0D1117" />
-        </shape>
-    </item>
-    <item
-        android:width="84dp"
-        android:height="84dp"
         android:gravity="center"
-        android:drawable="@drawable/ic_launcher_foreground" />
+        android:drawable="@drawable/app_icon" />
 </layer-list>

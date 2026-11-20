@@ -16,5 +16,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "OctoDeck"
+rootProject.name = "OctoMobile"
 include(":app")

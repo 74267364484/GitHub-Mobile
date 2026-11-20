@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B2433"/>
+      <stop offset="0.55" stop-color="#0D1117"/>
+      <stop offset="1" stop-color="#05070B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="36%" cy="32%" r="66%">
+      <stop offset="0" stop-color="#2F81F7" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#2F81F7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2F81F7"/>
+      <stop offset="1" stop-color="#3FB950"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect x="32" y="32" width="960" height="960" rx="224"/>
+    </clipPath>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#bg)"/>
+  <g clip-path="url(#clip)">
+    <rect x="32" y="32" width="960" height="960" fill="url(#glow)"/>
+    <g transform="translate(167 172)">
+      <path fill="#F0F6FC" d="M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8z"/>
+    </g>
+    <rect x="536" y="428" width="318" height="444" rx="86" fill="#0D1117"/>
+    <rect x="552" y="444" width="286" height="412" rx="72" fill="#F0F6FC"/>
+    <rect x="572" y="470" width="246" height="354" rx="54" fill="#0D1117"/>
+    <rect x="588" y="486" width="214" height="322" rx="40" fill="url(#accent)" opacity=".92"/>
+    <rect x="660" y="452" width="70" height="10" rx="5" fill="#8B949E"/>
+    <rect x="662" y="834" width="66" height="10" rx="5" fill="#8B949E"/>
+  </g>
+</svg>

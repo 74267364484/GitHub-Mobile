@@ -35,7 +35,7 @@ function api(p, silent = false) {
       `https://api.github.com${p}`,
       '-H', `Authorization: Bearer ${TOKEN}`,
       '-H', 'Accept: application/vnd.github+json',
-      '-H', 'User-Agent: OctoDeck-Demo',
+      '-H', 'User-Agent: OctoMobile-Demo',
     ])
     return JSON.parse(out)
   } catch (e) {
@@ -173,7 +173,7 @@ const gql = curl([
   '-X', 'POST',
   '-H', `Authorization: bearer ${TOKEN}`,
   '-H', 'Content-Type: application/json',
-  '-H', 'User-Agent: OctoDeck-Demo',
+  '-H', 'User-Agent: OctoMobile-Demo',
   '-d', JSON.stringify({
     query: `query($login: String!) { user(login: $login) { contributionsCollection { contributionCalendar { totalContributions weeks { contributionDays { date contributionCount contributionLevel } } } } } }`,
     variables: { login: LOGIN },

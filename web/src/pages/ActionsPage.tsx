@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { Repository, Workflow, WorkflowRun } from '../types'
 import { useApi } from '../lib/hooks'
+import { openExternal } from '../lib/api'
+import { startDownload } from '../lib/downloads'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
 import { Skeleton } from '../components/ui'
@@ -72,7 +74,7 @@ export function ActionsPage({
         ))}
         {!workflowsState.loading && workflows.length > 0 && (
           <a className="actions-side-manage" href={`https://github.com/${full}/actions`} target="_blank" rel="noreferrer">
-            Manage workflows <Octicon name="link-external" size={12} />
+            管理工作流 <Octicon name="link-external" size={12} />
           </a>
         )}
       </aside>
@@ -96,7 +98,14 @@ export function ActionsPage({
             {runs.map((run) => {
               const st = statusIcon(run)
               return (
-                <a className="run-row" key={run.id} href={run.html_url} target="_blank" rel="noreferrer">
+                <div
+                  className="run-row"
+                  key={run.id}
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => openExternal(run.html_url)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openExternal(run.html_url) }}
+                >
                   <span className={`run-status ${st.cls}`} title={st.label}>
                     <Octicon name={st.icon as any} size={16} />
                   </span>
@@ -113,8 +122,19 @@ export function ActionsPage({
                   <div className="run-side">
                     <span>{timeAgo(run.created_at)}</span>
                     <span className="run-duration">{formatDuration(run.created_at, run.updated_at)}</span>
+                    <button
+                      className="run-download"
+                      title="下载运行日志"
+                      aria-label="下载运行日志"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        startDownload({ kind: 'run-logs', repo: full, runId: run.id })
+                      }}
+                    >
+                      <Octicon name="download" size={14} />
+                    </button>
                   </div>
-                </a>
+                </div>
               )
             })}
           </div>

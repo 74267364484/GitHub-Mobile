@@ -132,7 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const [u, r] = await Promise.all([
           gh<GitHubUser>('/user'),
-          gh<Repository[]>('/user/repos?per_page=100&sort=updated&affiliation=owner'),
+          gh<Repository[]>('/user/repos?per_page=100&sort=updated&visibility=all&affiliation=owner,collaborator,organization_member'),
         ])
         if (boot !== bootRef.current) return { ok: false }
         setUser(u)

@@ -30,7 +30,7 @@ export function Header() {
           <Octicon name="three-bars" size={20} />
         </button>
 
-        <a className="header-logo" href="#/" aria-label="OctoDeck 首页">
+        <a className="header-logo" href="#/" aria-label="OctoMobile 首页">
           <Octicon name="mark-github" size={32} />
         </a>
 
@@ -81,7 +81,7 @@ export function Header() {
                 </a>
                 <div className="dropdown-divider" />
                 <a className="dropdown-item" href="#/settings" onClick={close}>
-                  <Octicon name="gear" size={16} /> OctoDeck 设置
+                  <Octicon name="gear" size={16} /> OctoMobile 设置
                 </a>
               </>
             )}
@@ -159,7 +159,7 @@ export function Header() {
                     <Octicon name="sign-out" size={16} /> 退出登录
                   </button>
                 )}
-                <div className="dropdown-version">OctoDeck v1.1.0</div>
+                <div className="dropdown-version">OctoMobile v1.2.0</div>
               </>
             )}
           </Dropdown>

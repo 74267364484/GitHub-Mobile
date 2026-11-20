@@ -48,7 +48,7 @@ export function useApi<T>(path: string | null): AsyncState<T> {
 
 export function useDocumentTitle(title: string) {
   useEffect(() => {
-    document.title = title ? `${title} · OctoDeck` : 'OctoDeck'
+    document.title = title ? `${title} · OctoMobile` : 'OctoMobile'
   }, [title])
 }
 

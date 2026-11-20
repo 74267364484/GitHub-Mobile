@@ -67,7 +67,7 @@ export function ProfilePage() {
   const isSelf = Boolean(login && current && login.toLowerCase() === current.login.toLowerCase())
   const userState = useApi<GitHubUser>(login ? `/users/${login}` : null)
   const reposState = useApi<Repository[]>(
-    login ? (isSelf ? '/user/repos?per_page=100&sort=updated&affiliation=owner' : `/users/${login}/repos?per_page=100&sort=updated`) : null,
+    login ? (isSelf ? '/user/repos?per_page=100&sort=updated&visibility=all&affiliation=owner,collaborator,organization_member' : `/users/${login}/repos?per_page=100&sort=updated`) : null,
   )
   const eventsState = useApi<GitHubEvent[]>(login ? `/users/${login}/events?per_page=30` : null)
   const starredState = useApi<Repository[]>(isSelf ? '/user/starred?per_page=30' : null)

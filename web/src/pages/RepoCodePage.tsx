@@ -22,6 +22,7 @@ import { Button, Dialog, Dropdown, EmptyState, Skeleton } from '../components/ui
 import { useApi } from '../lib/hooks'
 import { gh, loadImage } from '../lib/api'
 import { copyText } from '../lib/clipboard'
+import { startDownload } from '../lib/downloads'
 import {
   b64DecodeUnicode, compact, formatBytes, languagePercent, languageColor,
   timeAgo, firstLine, relativeLevel,
@@ -287,17 +288,13 @@ export function RepoCodePage({
                     <Octicon name="copy" size={16} />
                   </button>
                 </div>
-                <div className="clone-row">
-                  <span className="clone-kind">gh</span>
-                  <code>gh repo clone {full}</code>
-                  <button className="clone-copy" onClick={() => copy(`gh repo clone ${full}`, 'gh 命令已复制')} aria-label="复制 gh 克隆命令">
-                    <Octicon name="copy" size={16} />
-                  </button>
-                </div>
                 <div className="clone-divider" />
-                <a className="dropdown-item" href={`https://github.com/${full}/archive/refs/heads/${encodeURIComponent(branch)}.zip`} target="_blank" rel="noreferrer" onClick={close}>
-                  <Octicon name="download" size={16} /> 下载 ZIP
-                </a>
+                <button className="dropdown-item" onClick={() => { close(); startDownload({ kind: 'repo-zip', repo: full, ref: branch }) }}>
+                  <Octicon name="download" size={16} /> 下载 ZIP（{branch}）
+                </button>
+                <button className="dropdown-item" onClick={() => { close(); startDownload({ kind: 'repo-tar', repo: full, ref: branch }) }}>
+                  <Octicon name="download" size={16} /> 下载 TAR.GZ（{branch}）
+                </button>
               </div>
             )}
           </Dropdown>
@@ -337,11 +334,11 @@ export function RepoCodePage({
                   <span>{fileState.data?.size != null ? formatBytes(fileState.data.size) : ''}</span>
                   {fileState.data?.content && <span>{fileText.split('\n').length} 行</span>}
                   <a className="btn btn-sm btn-default" href={`https://raw.githubusercontent.com/${full}/${branch}/${encodePath(currentPath)}`} target="_blank" rel="noreferrer">
-                    <Octicon name="download" size={14} /> 原始文件
+                    <Octicon name="link-external" size={14} /> 在 GitHub 查看
                   </a>
-                  <a className="btn btn-sm btn-default" href={`https://github.com/${full}/blob/${encodeURIComponent(branch)}/${encodePath(currentPath)}`} target="_blank" rel="noreferrer">
-                    <Octicon name="link-external" size={14} /> GitHub
-                  </a>
+                  <button className="btn btn-sm btn-default" onClick={() => startDownload({ kind: 'file', repo: full, ref: branch, path: currentPath })}>
+                    <Octicon name="download" size={14} /> 下载文件
+                  </button>
                 </div>
               </div>
               {fileState.loading && <div className="blob-loading"><Skeleton height={20} /><Skeleton height={16} width="70%" /><Skeleton height={16} width="85%" /></div>}

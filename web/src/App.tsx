@@ -4,6 +4,8 @@ import { Header } from './components/Header'
 import { LeftRail } from './components/LeftRail'
 import { Octicon } from './components/Octicon'
 import { LoadingBar } from './components/LoadingBar'
+import { DownloadTray } from './components/DownloadTray'
+import { initNativeDownloadEvents } from './lib/downloads'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthPage, AuthLoading } from './pages/AuthPage'
 import { routeKey, useRoute, navigate } from './lib/router'
@@ -91,6 +93,10 @@ function Shell() {
   useShortcuts(source === 'live' || source === 'demo')
 
   useEffect(() => {
+    initNativeDownloadEvents()
+  }, [])
+
+  useEffect(() => {
     window.scrollTo({ top: 0 })
     setDrawerOpen(false)
   }, [key, setDrawerOpen])
@@ -131,7 +137,7 @@ function Shell() {
             </ErrorBoundary>
           </div>
           <footer className="app-foot">
-            <span>OctoDeck v1.1.0</span>
+            <span>OctoMobile v1.2.0</span>
             <span>·</span>
             <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
             <span>·</span>
@@ -139,6 +145,8 @@ function Shell() {
           </footer>
         </main>
       </div>
+
+      <DownloadTray />
 
       {toast && (
         <div className={`toast toast-${toast.kind}`} role="status">

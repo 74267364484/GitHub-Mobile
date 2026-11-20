@@ -192,7 +192,7 @@ const imageCache = new Map()
 
 async function fetchImage(url, depth = 0) {
   if (imageCache.has(url)) return imageCache.get(url)
-  const headers = { 'user-agent': 'Mozilla/5.0 OctoDeck', accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8' }
+  const headers = { 'user-agent': 'Mozilla/5.0 OctoMobile', accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8' }
   const r = await requestUpstream({ url, headers, timeout: 20000 })
   if (r.status >= 300 && r.status < 400 && r.headers.location && depth < 3) {
     const next = new URL(r.headers.location, url).toString()
@@ -233,14 +233,14 @@ function proxyTest(mapping) {
               servername: hostname,
               path: '/rate_limit',
               method: 'GET',
-              headers: { host: hostname, 'user-agent': 'OctoDeck-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
+              headers: { host: hostname, 'user-agent': 'OctoMobile-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
               timeout: 9000,
             }
           : {
               hostname,
               path: '/rate_limit',
               method: 'GET',
-              headers: { 'user-agent': 'OctoDeck-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
+              headers: { 'user-agent': 'OctoMobile-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
               timeout: 9000,
             },
         (res) => {
@@ -288,7 +288,7 @@ function proxyTest(mapping) {
       }
       tlsSock = tls.connect({ socket: sock, servername: hostname, ALPNProtocols: ['http/1.1'] }, () => {
         tlsSock.write(
-          `GET /rate_limit HTTP/1.1\r\nHost: ${hostname}\r\nUser-Agent: OctoDeck-Healthcheck\r\nAccept: application/vnd.github+json\r\nConnection: close\r\n\r\n`,
+          `GET /rate_limit HTTP/1.1\r\nHost: ${hostname}\r\nUser-Agent: OctoMobile-Healthcheck\r\nAccept: application/vnd.github+json\r\nConnection: close\r\n\r\n`,
         )
       })
       tlsSock.setTimeout(9000, () => finishOnce({ ok: false, error: 'TLS 超时' }))
@@ -303,6 +303,67 @@ function proxyTest(mapping) {
       })
     }
     sock.on('data', onData)
+  })
+}
+
+const DOWNLOAD_HOSTS = [
+  'api.github.com',
+  'github.com',
+  'codeload.github.com',
+  'raw.githubusercontent.com',
+  'objects.githubusercontent.com',
+  'release-assets.githubusercontent.com',
+  'github-releases.githubusercontent.com',
+  'uploads.github.com',
+]
+
+function downloadAllowed(raw) {
+  try {
+    const u = new URL(raw)
+    if (u.protocol !== 'https:') return false
+    if (u.hostname === 'githubusercontent.com' || u.hostname.endsWith('.githubusercontent.com')) return true
+    return DOWNLOAD_HOSTS.some((h) => u.hostname === h || u.hostname.endsWith('.' + h))
+  } catch {
+    return false
+  }
+}
+
+function sanitizeName(raw) {
+  return (raw || '')
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+    .replace(/^\.+/, '')
+    .trim()
+    .slice(0, 180)
+}
+
+function filenameFromDisposition(value) {
+  if (!value) return ''
+  const star = value.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+  if (star) {
+    try {
+      return sanitizeName(decodeURIComponent(star[1].trim().replace(/^"|"$/g, '')))
+    } catch {}
+  }
+  const plain = value.match(/filename\s*=\s*"?([^";]+)"?/i)
+  return plain ? sanitizeName(plain[1]) : ''
+}
+
+function openDownloadStream(raw, headers) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(raw)
+    const opts = proxyIpOptions(u.hostname, {
+      method: 'GET',
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      headers,
+      timeout: 60000,
+    })
+    const agent = agentFor()
+    if (agent) opts.agent = agent
+    const req = https.request(opts, (r) => resolve(r))
+    req.on('timeout', () => req.destroy(new Error('upstream timeout')))
+    req.on('error', reject)
+    req.end()
   })
 }
 
@@ -337,7 +398,7 @@ function serveStatic(req, res, pathname) {
   }
   if (!file) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-    res.end(`<!doctype html><meta charset=utf-8><title>OctoDeck</title><body style="font:15px system-ui;padding:40px;background:#f6f8fa"><h2>OctoDeck 前端尚未构建</h2><p>请先运行 <code>cd web && npm run build</code>，或用 <code>npm run dev</code> 启动 Vite 开发服务器（5173）。</p><p>API 服务已在 8787 端口运行。</p>`)
+    res.end(`<!doctype html><meta charset=utf-8><title>OctoMobile</title><body style="font:15px system-ui;padding:40px;background:#f6f8fa"><h2>OctoMobile 前端尚未构建</h2><p>请先运行 <code>cd web && npm run build</code>，或用 <code>npm run dev</code> 启动 Vite 开发服务器（5173）。</p><p>API 服务已在 8787 端口运行。</p>`)
     return
   }
   const ext = path.extname(file).toLowerCase()
@@ -363,7 +424,7 @@ const server = http.createServer(async (req, res) => {
         defaultRepo: DEFAULT_REPO,
         host: hostState,
         native: false,
-        version: '1.1.0',
+        version: '1.2.0',
         proxy: Boolean(PROXY),
       })
       return
@@ -423,7 +484,7 @@ const server = http.createServer(async (req, res) => {
         headers: {
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
-          'user-agent': 'OctoDeck',
+          'user-agent': 'OctoMobile',
           accept: 'application/vnd.github+json',
         },
         body,
@@ -448,7 +509,7 @@ const server = http.createServer(async (req, res) => {
       const body = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) ? await readBody(req) : null
       const headers = {
         accept: req.headers.accept || 'application/vnd.github+json',
-        'user-agent': 'OctoDeck',
+        'user-agent': 'OctoMobile',
         'x-github-api-version': '2022-11-28',
       }
       if (token) headers.authorization = `Bearer ${token}`
@@ -492,6 +553,87 @@ const server = http.createServer(async (req, res) => {
       return
     }
 
+    if (p === '/api/download') {
+      if (SNAPSHOT_ONLY) {
+        json(res, 401, { message: '离线快照模式未启用下载。' })
+        return
+      }
+      const src = url.searchParams.get('url') || ''
+      if (!downloadAllowed(src)) {
+        json(res, 400, { message: '下载地址不在允许的 GitHub 域名内。' })
+        return
+      }
+      const wanted = sanitizeName(url.searchParams.get('name') || '')
+      const accept = (req.headers['x-accept'] || '').toString() || 'application/vnd.github+json'
+      const clientToken = (req.headers['x-gh-token'] || '').toString().trim()
+      const token = clientToken || SERVER_TOKEN
+
+      let current = src
+      let upstream = null
+      for (let hop = 0; hop < 6; hop++) {
+        const host = new URL(current).hostname
+        const headers = {
+          'user-agent': 'OctoMobile',
+          accept,
+          'accept-encoding': 'identity',
+          'x-github-api-version': '2022-11-28',
+        }
+        if (token && host === 'api.github.com') headers.authorization = `Bearer ${token}`
+        const r = await openDownloadStream(current, headers)
+        const status = r.statusCode || 0
+        if (status >= 300 && status < 400 && r.headers.location) {
+          const next = new URL(r.headers.location, current).toString()
+          r.resume()
+          if (!downloadAllowed(next)) {
+            json(res, 502, { message: '下载重定向到未授权的域名。' })
+            return
+          }
+          current = next
+          continue
+        }
+        upstream = r
+        break
+      }
+
+      if (!upstream) {
+        json(res, 502, { message: '下载重定向次数过多。' })
+        return
+      }
+      if (upstream.statusCode >= 400) {
+        const chunks = []
+        let size = 0
+        for await (const chunk of upstream) {
+          size += chunk.length
+          if (size < 1024 * 1024) chunks.push(chunk)
+        }
+        let message = `GitHub 返回 ${upstream.statusCode}`
+        try {
+          const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+          if (parsed?.message) message = parsed.message
+        } catch {}
+        json(res, upstream.statusCode, { message })
+        return
+      }
+
+      const filename = wanted || filenameFromDisposition(upstream.headers['content-disposition']) || 'download'
+      const headers = {
+        'content-type': upstream.headers['content-type'] || 'application/octet-stream',
+        'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        'cache-control': 'no-store',
+        'x-octo-download': filename,
+      }
+      if (upstream.headers['content-length']) headers['content-length'] = upstream.headers['content-length']
+      res.writeHead(200, headers)
+      upstream.pipe(res)
+      upstream.on('error', () => {
+        try { res.destroy() } catch {}
+      })
+      res.on('close', () => {
+        try { upstream.destroy() } catch {}
+      })
+      return
+    }
+
     if (p === '/api/health') {
       json(res, 200, { ok: true, ts: Date.now() })
       return
@@ -506,7 +648,7 @@ const server = http.createServer(async (req, res) => {
 })
 
 server.listen(PORT, HOST, () => {
-  console.log(`OctoDeck dev server → http://${HOST}:${PORT}`)
+  console.log(`OctoMobile dev server → http://${HOST}:${PORT}`)
   console.log(`GitHub API token: ${SERVER_TOKEN ? 'server-side configured' : 'not configured'}`)
   console.log(`Egress proxy: ${PROXY || 'none (direct + host mapping)'}`)
   console.log(`Host mapping: ${hostState.enabled ? hostState.mappingId : 'disabled'}`)
