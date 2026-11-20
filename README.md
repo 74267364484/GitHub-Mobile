@@ -23,8 +23,8 @@
 ## 下载
 
 - 最新 APK：本仓库 **Releases** 页面的 `OctoMobile-1.2.0.apk`
-- 大小：约 4 MB，debug 签名，可直接侧载
-- SHA-256：构建完成后以 `sha256sum OctoMobile-1.2.0.apk` 为准
+- 大小：约 3.8 MB（3,962,538 字节），debug 签名，可直接侧载
+- SHA-256：`a198b44838e9323ffc10b439330d3a01de639ab453af8d1f1256642bf87e8140`
 
 ---
 
