@@ -19,6 +19,8 @@
 | ![](docs/screenshots/v11-auth-mobile.png) | ![](docs/screenshots/v11-home-mobile.png) |
 | **手机抽屉（Host 卡片在置顶）** | **手机 Host 弹窗** |
 | ![](docs/screenshots/v11-drawer-mobile.png) | ![](docs/screenshots/v11-host-mobile.png) |
+| **Android 11 · WebView 83 登录页** | **Android 11 · WebView 83 演示页** |
+| ![](docs/screenshots/v11-emulator-auth.png) | ![](docs/screenshots/v11-emulator-demo.png) |
 
 ---
 
@@ -183,13 +185,17 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 
 - 宿主机无 `/dev/kvm`、CPU 无 vmx/svm；官方 `emulator -accel-check` 返回 `KVM requires a CPU that supports vmx or svm`。
 - 使用 `ANDROID_I_WANT_MY_TCG=yes` 强制 QEMU TCG，Android 11 (API 30) AOSP `x86_64` AVD 启动成功。
-- `adb install OctoDeck-1.1.0.apk` 安装成功，MainActivity 启动；首屏为登录页而非账号页；可进入中性演示并打开 Host 弹窗。
-- 受 TCG 性能影响，模拟器系统 UI 自身可能 ANR；这是模拟器系统层，不是 OctoDeck。
+- `adb install OctoDeck-1.1.0.apk` 安装成功，MainActivity 启动；首屏为中文登录页，**不含任何个人账号或私有仓库**。
+- 通过 WebView DevTools/CDP 实测：登录页、中性演示首页与贡献日历、Host 弹窗均正常；演示页为 `sindresorhus/awesome` + `microsoft/vscode` 公开数据。
+- 模拟器 WebView 83 实测发现并修复了一个新的白屏问题：`MediaQueryList.addEventListener` 在 Chrome 83 不存在，`AppProvider` 的主题监听会抛错导致空页面。已回退到 `addListener/removeListener`，并把 `ErrorBoundary` 移到 `AppProvider` 外层兜底。
+- 受 TCG 性能影响，模拟器系统 UI 自身会 ANR（`System UI isn't responding`），截图会被系统弹窗遮挡；上面的模拟器截图来自 WebView DevTools 页面本身，不是系统 UI。
 - 沙箱直连 GitHub 被阻断，模拟器内 Host 测速显示「不可用」属预期；真实设备或带 KVM 的模拟器会流畅得多。
+- WebView 83 不支持 flex `gap`，旧系统 WebView 的间距会比现代浏览器更紧凑；功能与布局仍然可用，真机更新的 WebView / 现代 Chrome 显示为上面的桌面/手机截图效果。
 
 ## 已知限制
 
-- **模拟器**：沙箱无 KVM，只能强制 TCG 软件模拟；系统 UI 会 ANR，完整点击流没有在模拟器里跑完。真机或带 KVM 的模拟器会流畅得多。
+- **模拟器**：沙箱无 KVM，只能强制 TCG 软件模拟；系统 UI 会 ANR，完整点击流没有在模拟器里跑完；登录/演示/Host 弹窗已通过 WebView CDP 验证。真机或带 KVM 的模拟器会流畅得多。
+- **旧 WebView**：Android 11 自带 WebView 83 不支持 flex gap，间距更紧凑；现代 WebView 正常。
 - 仓库 Settings 是只读预览；合并 PR、创建 Release、修改仓库设置会跳转 GitHub。
 - 部分 GitHub 能力依赖 Token 权限；没有 Token 时只能使用中性演示，不会展示任何个人数据。
 - 分支名含 `/` 时需要在 URL 中编码；手工拼裸路径可能无法解析。
