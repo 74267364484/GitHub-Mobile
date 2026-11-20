@@ -246,7 +246,8 @@ export function initNativeDownloadEvents(): void {
     if (detail.state === 'done') {
       item.state = 'done'
       item.total = item.total || item.received
-      if (detail.uri) item.local = detail.uri
+      if (detail.uri) item.local = String(detail.uri)
+      else if (detail.path) item.local = String(detail.path)
       if (!item.total && typeof detail.size === 'number') item.total = detail.size
     } else if (detail.state === 'error') {
       item.state = 'error'

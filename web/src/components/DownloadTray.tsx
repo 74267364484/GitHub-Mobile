@@ -45,7 +45,7 @@ export function DownloadTray() {
                   <div className="download-item-name" title={item.name}>{item.name}</div>
                   <div className="download-item-meta">
                     {item.state === 'done' && (
-                      <span>{item.total ? formatBytes(item.total) : '已完成'} · {item.local?.startsWith('content:') ? '已保存到下载目录' : '已保存'}</span>
+                      <span>{item.total ? formatBytes(item.total) : '已完成'} · {item.local?.startsWith('Downloads/') ? '已保存到 Downloads/OctoMobile' : item.local?.startsWith('content:') ? '已保存到下载目录' : '已保存'}</span>
                     )}
                     {item.state === 'error' && <span className="download-error">{item.error}</span>}
                     {item.state === 'downloading' && (
