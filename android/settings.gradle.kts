@@ -16,5 +16,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "OctoMobile"
+rootProject.name = "GitHubMobile"
 include(":app")

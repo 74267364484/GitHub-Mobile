@@ -87,7 +87,7 @@ function useShortcuts(enabled: boolean) {
 }
 
 function Shell() {
-  const { loading, source, fatal, toast, setDrawerOpen, drawerOpen, exitDemo, user } = useApp()
+  const { loading, source, fatal, toast, setDrawerOpen, drawerOpen, exitDemo, user, config } = useApp()
   const route = useRoute()
   const key = routeKey(route)
   useShortcuts(source === 'live' || source === 'demo')
@@ -117,11 +117,19 @@ function Shell() {
               <div className="flash demo-banner">
                 <span className="demo-banner-icon"><Octicon name="sparkle" size={16} /></span>
                 <div className="demo-banner-text">
-                  <strong>演示模式</strong>
-                  <span>正在浏览公开演示数据（sindresorhus/awesome、microsoft/vscode），不是你的 GitHub 账号。</span>
+                  <strong>{config?.hasToken ? '演示模式' : '公开浏览'}</strong>
+                  <span>
+                    {config?.hasToken
+                      ? '正在浏览公开演示数据（sindresorhus/awesome、microsoft/vscode），不是你的 GitHub 账号。'
+                      : '未登录也能直接使用：首页展示中性公开数据，搜索与仓库页可浏览 GitHub 公共仓库。登录后可访问私有仓库与个人数据。'}
+                  </span>
                 </div>
-                <button className="demo-banner-action" onClick={() => exitDemo()}>退出演示</button>
-                <a className="demo-banner-link" href="#/settings">连接 GitHub</a>
+                {config?.hasToken ? (
+                  <button className="demo-banner-action" onClick={() => exitDemo()}>退出演示</button>
+                ) : (
+                  <a className="demo-banner-action" href="#/settings">登录 GitHub</a>
+                )}
+                {config?.hasToken && <a className="demo-banner-link" href="#/settings">连接 GitHub</a>}
               </div>
             )}
             {fatal && (
@@ -137,7 +145,7 @@ function Shell() {
             </ErrorBoundary>
           </div>
           <footer className="app-foot">
-            <span>OctoMobile v1.2.0</span>
+            <span>GitHub Mobile v1.3.0</span>
             <span>·</span>
             <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
             <span>·</span>

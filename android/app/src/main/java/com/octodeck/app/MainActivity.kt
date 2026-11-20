@@ -29,6 +29,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -47,6 +48,18 @@ class MainActivity : ComponentActivity() {
     private lateinit var splashProgress: ProgressBar
     private lateinit var bridge: OctoBridge
     private var splashHidden = false
+    private var pendingDownload: PendingDownload? = null
+
+    private data class PendingDownload(val id: String, val url: String, val name: String, val accept: String)
+
+    private val createDownload = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        val pending = pendingDownload
+        pendingDownload = null
+        if (pending != null) {
+            if (uri == null) bridge.downloadCancelled(pending.id)
+            else bridge.startDownloadToUri(pending.id, pending.url, pending.name, pending.accept, uri)
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,6 +92,17 @@ class MainActivity : ComponentActivity() {
         HostConfig.load(this)
         setupWebView()
         bridge = OctoBridge(this, webView) { theme -> applyTheme(theme) }
+        bridge.pickDownloadTarget = { id, url, name, accept ->
+            runOnUiThread {
+                pendingDownload = PendingDownload(id, url, name, accept)
+                try {
+                    createDownload.launch(name)
+                } catch (e: Exception) {
+                    pendingDownload = null
+                    bridge.startDownloadToDefault(id, url, name, accept)
+                }
+            }
+        }
         webView.addJavascriptInterface(bridge, "OctoDeck")
         webView.loadUrl(APP_URL)
 
@@ -100,7 +124,7 @@ class MainActivity : ComponentActivity() {
             layoutParams = LinearLayout.LayoutParams(dp(104), dp(104))
         }
         val title = TextView(this).apply {
-            text = "OctoMobile"
+            text = "GitHub Mobile"
             textSize = 24f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(getColor(R.color.splash_fg))
@@ -152,7 +176,7 @@ class MainActivity : ComponentActivity() {
             javaScriptCanOpenWindowsAutomatically = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " OctoMobile/1.2 Android"
+            userAgentString = userAgentString + " GitHub Mobile/1.3 Android"
         }
 
         val assetLoader = WebViewAssetLoader.Builder()

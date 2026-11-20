@@ -1,5 +1,5 @@
 /* ============================================================
-   OctoMobile · GitHub-like design system
+   GitHub Mobile · GitHub-like design system
    Tokens follow Primer (GitHub) light/dark defaults.
    ============================================================ */
 
@@ -2696,4 +2696,23 @@ a.repo-meta-item:hover { color: var(--accent-fg); }
   font-size: 10px;
   line-height: 16px;
   white-space: nowrap;
+}
+
+/* v1.3 · dropdown viewport fit + public mode */
+.dropdown-panel {
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+a.demo-banner-action { text-decoration: none; display: inline-flex; align-items: center; }
+@media (max-width: 640px) {
+  .dropdown-panel { max-height: 70vh; }
+  .clone-menu { padding: 4px 4px 6px; }
+  .clone-row { flex-wrap: wrap; row-gap: 6px; }
+  .clone-row code { flex: 1 1 100%; order: 2; white-space: normal; word-break: break-all; }
+  .clone-copy { order: 3; margin-left: auto; }
+  .clone-divider { margin: 6px 0; }
+  .release-source { padding: 10px 12px 14px; }
+  .files-download { margin-left: 0; width: 100%; justify-content: center; }
 }

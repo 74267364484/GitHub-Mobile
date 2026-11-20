@@ -81,7 +81,7 @@ class OctoBridge(
             put("defaultRepo", "")
             put("host", hostState.get().toJson())
             put("native", true)
-            put("version", "1.2.0")
+            put("version", "1.3.0")
             put("proxy", false)
         }.toString()
     }
@@ -143,7 +143,7 @@ class OctoBridge(
                     .url("https://api.github.com$path")
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
-                    .header("User-Agent", "OctoMobile/1.2 Android")
+                    .header("User-Agent", "GitHub Mobile/1.3 Android")
                 val token = secure.get()
                 if (!token.isNullOrBlank()) builder.header("Authorization", "Bearer $token")
                 val reqBody = if (body.isBlank()) null else body.toRequestBody(jsonMedia)
@@ -197,7 +197,7 @@ class OctoBridge(
                 val req = Request.Builder()
                     .url("https://api.github.com/graphql")
                     .header("Authorization", "Bearer $token")
-                    .header("User-Agent", "OctoMobile/1.2 Android")
+                    .header("User-Agent", "GitHub Mobile/1.3 Android")
                     .header("Accept", "application/vnd.github+json")
                     .post(body.toRequestBody(jsonMedia))
                     .build()
@@ -245,7 +245,7 @@ class OctoBridge(
                                 try {
                                     val req = Request.Builder()
                                         .url("https://api.github.com/rate_limit")
-                                        .header("User-Agent", "OctoMobile-Healthcheck")
+                                        .header("User-Agent", "GitHub Mobile-Healthcheck")
                                         .header("Accept", "application/vnd.github+json")
                                         .build()
                                     testClient.newCall(req).execute().use { r ->
@@ -316,7 +316,7 @@ class OctoBridge(
                 }
                 val req = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "Mozilla/5.0 OctoMobile")
+                    .header("User-Agent", "Mozilla/5.0 GitHub Mobile")
                     .header("Accept", "image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8")
                     .build()
                 client.newCall(req).execute().use { response ->
@@ -356,25 +356,44 @@ class OctoBridge(
 
     // ---------------- real file downloads ----------------
 
+    /** MainActivity 注入：弹出系统文件选择器，让用户决定保存位置。 */
+    var pickDownloadTarget: ((String, String, String, String) -> Unit)? = null
+
     @JavascriptInterface
     fun startDownload(id: String, url: String, filename: String, accept: String) {
-        downloadPool.execute {
-            runDownload(id, url, filename, accept)
+        val uri = Uri.parse(url)
+        val host = uri.host.orEmpty()
+        if (uri.scheme != "https" || !allowedDownloadHost(host)) {
+            downloadError(id, "下载域名不在白名单")
+            return
+        }
+        val name = sanitizeName(filename).ifBlank { "download" }
+        val picker = pickDownloadTarget
+        if (picker != null) {
+            picker(id, url, name, accept)
+        } else {
+            startDownloadToDefault(id, url, name, accept)
         }
     }
 
-    private fun runDownload(id: String, rawUrl: String, rawName: String, accept: String) {
+    fun downloadCancelled(id: String) {
+        emitDownload(id, JSONObject().put("state", "cancelled").toString())
+    }
+
+    fun startDownloadToDefault(id: String, url: String, filename: String, accept: String) {
+        downloadPool.execute { runDownload(id, url, filename, accept, null) }
+    }
+
+    fun startDownloadToUri(id: String, url: String, filename: String, accept: String, target: Uri) {
+        downloadPool.execute { runDownload(id, url, filename, accept, target) }
+    }
+
+    private fun runDownload(id: String, rawUrl: String, rawName: String, accept: String, target: Uri?) {
         try {
-            val uri = Uri.parse(rawUrl)
-            val host = uri.host.orEmpty()
-            if (uri.scheme != "https" || !allowedDownloadHost(host)) {
-                downloadError(id, "下载域名不在白名单")
-                return
-            }
             var name = sanitizeName(rawName)
             val builder = Request.Builder()
                 .url(rawUrl)
-                .header("User-Agent", "OctoMobile/1.2 Android")
+                .header("User-Agent", "GitHub Mobile/1.3 Android")
                 .header("Accept", accept.ifBlank { "application/octet-stream" })
                 .header("Accept-Encoding", "identity")
                 .header("X-GitHub-Api-Version", "2022-11-28")
@@ -404,14 +423,25 @@ class OctoBridge(
                 if (name.isBlank()) name = filenameFromDisposition(response.header("Content-Disposition"))
                 if (name.isBlank()) name = "download"
                 val total = body.contentLength()
-                val saved = saveToDownloads(name, body.byteStream(), total) { received ->
-                    downloadProgress(id, received, total)
+                val saved = if (target != null) {
+                    saveToUri(target, body.byteStream()) { received -> downloadProgress(id, received, total) }
+                    target.toString()
+                } else {
+                    saveToDownloads(name, body.byteStream(), total) { received ->
+                        downloadProgress(id, received, total)
+                    }
                 }
                 downloadDone(id, saved, total)
             }
         } catch (e: Exception) {
             downloadError(id, e.message ?: "下载失败")
         }
+    }
+
+    private fun saveToUri(target: Uri, input: InputStream, onProgress: (Long) -> Unit) {
+        val output = context.contentResolver.openOutputStream(target)
+            ?: throw IllegalStateException("无法写入所选位置")
+        output.use { copyStream(input, it, onProgress) }
     }
 
     private fun saveToDownloads(
@@ -426,7 +456,7 @@ class OctoBridge(
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, name)
                 put(MediaStore.Downloads.MIME_TYPE, mime)
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/OctoMobile")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/GitHub Mobile")
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val target = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
@@ -438,7 +468,7 @@ class OctoBridge(
                 values.clear()
                 values.put(MediaStore.Downloads.IS_PENDING, 0)
                 resolver.update(target, values, null, null)
-                return "Downloads/OctoMobile/$name"
+                return "Downloads/GitHub Mobile/$name"
             } catch (e: Exception) {
                 try { resolver.delete(target, null, null) } catch (_: Exception) {}
                 throw e

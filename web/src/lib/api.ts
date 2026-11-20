@@ -94,7 +94,7 @@ export async function loadConfig(): Promise<GHConfig> {
     }
   } else {
     const res = await fetch('/api/config', { headers: tokenHeaders(), cache: 'no-store' })
-    if (!res.ok) throw new ApiError('无法连接 OctoMobile 本地服务', res.status)
+    if (!res.ok) throw new ApiError('无法连接 GitHub Mobile 本地服务', res.status)
     cfg = (await res.json()) as GHConfig
     cfg.native = false
   }
@@ -157,9 +157,14 @@ export async function gh<T>(path: string, init: { method?: string; body?: any } 
   }
 
   if (demoMode && method === 'GET') {
-    const data = await demoRequest<T>(path)
-    emitSource('demo')
-    return data
+    try {
+      const data = await demoRequest<T>(path)
+      emitSource('demo')
+      return data
+    } catch (e) {
+      // 公开浏览模式下，快照里没有的页面继续走匿名 GitHub API。
+      if (!(e instanceof SnapshotMiss)) throw e
+    }
   }
 
   beginRequest()
@@ -176,7 +181,11 @@ export async function gh<T>(path: string, init: { method?: string; body?: any } 
     } else {
       const res = await fetch('/api/gh?path=' + encodeURIComponent(path), {
         method,
-        headers: { ...tokenHeaders(), ...(init.body ? { 'content-type': 'application/json' } : {}) },
+        headers: {
+          ...tokenHeaders(),
+          ...(demoMode && !clientToken ? { 'x-gh-anonymous': '1' } : {}),
+          ...(init.body ? { 'content-type': 'application/json' } : {}),
+        },
         body: init.body ? JSON.stringify(init.body) : undefined,
         cache: 'no-store',
       })
@@ -191,7 +200,7 @@ export async function gh<T>(path: string, init: { method?: string; body?: any } 
       data = parsed as T
     }
     if (method === 'GET') cache.set(cacheKey, { at: Date.now(), data })
-    emitSource('live')
+    emitSource(demoMode ? 'demo' : 'live')
     return data
   } finally {
     endRequest()

@@ -253,7 +253,7 @@ export function HostDialog({ onClose }: { onClose: () => void }) {
       <div className="host-note">
         <Octicon name="info" size={16} />
         <span>
-          Host 映射只影响 OctoMobile 自身的 GitHub 请求，不修改系统 hosts，也不需要 Root。
+          Host 映射只影响 GitHub Mobile 自身的 GitHub 请求，不修改系统 hosts，也不需要 Root。
           线路 IP 为 GitHub 公开边缘节点，可能随官方调度变化；连接异常时点击「测速」或切回官方直连。
         </span>
       </div>

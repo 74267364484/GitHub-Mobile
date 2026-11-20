@@ -172,6 +172,9 @@ export function RepoHeader({
         <a className={`repo-tab ${tab === 'actions' ? 'active' : ''}`} href={`#${base}/actions`}>
           <Octicon name="play" size={16} /> Actions
         </a>
+        <a className={`repo-tab ${tab === 'releases' ? 'active' : ''}`} href={`#${base}/releases`}>
+          <Octicon name="tag" size={16} /> 发行版
+        </a>
         <a className={`repo-tab ${tab === 'projects' ? 'active' : ''}`} href={`#${base}/projects`}>
           <Octicon name="table" size={16} /> 项目
         </a>

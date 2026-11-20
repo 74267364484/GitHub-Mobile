@@ -3,7 +3,7 @@ import { useApi } from '../lib/hooks'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
-import { ButtonLink, Skeleton } from '../components/ui'
+import { ButtonLink, EmptyState, Skeleton } from '../components/ui'
 import { formatBytes, formatDate, timeAgo } from '../lib/format'
 import { startDownload } from '../lib/downloads'
 
@@ -26,6 +26,19 @@ export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owne
 
       {state.loading && (
         <div className="card pad"><Skeleton height={120} /><Skeleton height={120} /></div>
+      )}
+
+      {!state.loading && state.error && (
+        <div className="card blankslate-wrap">
+          <EmptyState icon="alert" title="无法加载发行版">
+            <p>{state.error.message}</p>
+            {/rate limit|限流|403/i.test(state.error.message) && (
+              <ButtonLink href="#/settings" icon="key" variant="primary">
+                登录 GitHub 后继续
+              </ButtonLink>
+            )}
+          </EmptyState>
+        </div>
       )}
 
       {!state.loading && releases.map((r, i) => (

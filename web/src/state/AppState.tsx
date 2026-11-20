@@ -123,10 +123,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setConfig(cfg)
       setHost(cfg.host)
 
+      const enterPublic = async (message?: string): Promise<{ ok: boolean; error?: string }> => {
+        setDemoMode(true)
+        try {
+          const data = await loadDemoData()
+          if (boot !== bootRef.current) return { ok: false }
+          setUser(data.user)
+          setRepos(data.repos)
+          setDefaultRepo(data.defaultRepo || data.repos[0]?.full_name || '')
+          setSource('demo')
+          setRateLimit(null)
+          setUnreadCount(0)
+          setFatal(message || null)
+          setLoading(false)
+          return { ok: true }
+        } catch (e) {
+          setDemoMode(false)
+          resetToOnboarding()
+          const msg = e instanceof Error ? e.message : '公开数据加载失败'
+          setFatal(msg)
+          setLoading(false)
+          return { ok: false, error: msg }
+        }
+      }
+
       if (!cfg.hasToken) {
-        resetToOnboarding()
-        setLoading(false)
-        return { ok: true }
+        return enterPublic()
       }
 
       try {
@@ -157,17 +179,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (unauthorized) {
           await setClientToken('')
           setConfig({ ...cfg, hasToken: false, tokenSource: 'none' })
-          const msg = '登录已失效，请重新粘贴 GitHub Token。'
-          resetToOnboarding()
-          setFatal(msg)
-          setLoading(false)
-          return { ok: false, error: msg }
+          return enterPublic('登录已失效，已切换到公开浏览。')
         }
-        const msg = `无法连接 GitHub：${err.message}`
-        resetToOnboarding()
-        setFatal(msg)
-        setLoading(false)
-        return { ok: false, error: msg }
+        return enterPublic(`无法连接 GitHub：${err.message}。当前为公开浏览。`)
       }
     } catch (e) {
       if (boot !== bootRef.current) return { ok: false }

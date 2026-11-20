@@ -57,7 +57,7 @@ fi
 cd "$ROOT/android"
 "$GRADLE" --no-daemon :app:testDebugUnitTest :app:assembleDebug
 
-cp -f app/build/outputs/apk/debug/app-debug.apk "$ROOT/OctoMobile-1.2.0.apk"
+cp -f app/build/outputs/apk/debug/app-debug.apk "$ROOT/GitHubMobile-1.3.0.apk"
 echo
-echo "APK: $ROOT/OctoMobile-1.2.0.apk"
-ls -lh "$ROOT/OctoMobile-1.2.0.apk"
+echo "APK: $ROOT/GitHubMobile-1.3.0.apk"
+ls -lh "$ROOT/GitHubMobile-1.3.0.apk"

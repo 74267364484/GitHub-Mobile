@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Octicon, type IconName } from './Octicon'
 import { timeAgo } from '../lib/format'
 
@@ -184,6 +184,21 @@ export function Dropdown({
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const el = panelRef.current
+    if (!el) return
+    el.style.transform = ''
+    const rect = el.getBoundingClientRect()
+    const margin = 8
+    let dx = 0
+    if (rect.left < margin) dx = margin - rect.left
+    else if (rect.right > window.innerWidth - margin) dx = window.innerWidth - margin - rect.right
+    if (dx) el.style.transform = `translateX(${Math.round(dx)}px)`
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => {
@@ -201,7 +216,7 @@ export function Dropdown({
     <div className={`dropdown ${open ? 'is-open' : ''}`} ref={ref}>
       <div className="dropdown-trigger" onClick={() => setOpen((v) => !v)}>{trigger}</div>
       {open && (
-        <div className={`dropdown-panel dropdown-${align} ${panelClassName}`} style={width ? { width } : undefined}>
+        <div ref={panelRef} className={`dropdown-panel dropdown-${align} ${panelClassName}`} style={width ? { width } : undefined}>
           {children(() => setOpen(false))}
         </div>
       )}

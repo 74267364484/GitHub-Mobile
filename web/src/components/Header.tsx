@@ -30,7 +30,7 @@ export function Header() {
           <Octicon name="three-bars" size={20} />
         </button>
 
-        <a className="header-logo" href="#/" aria-label="OctoMobile 首页">
+        <a className="header-logo" href="#/" aria-label="GitHub Mobile 首页">
           <Octicon name="mark-github" size={32} />
         </a>
 
@@ -81,7 +81,7 @@ export function Header() {
                 </a>
                 <div className="dropdown-divider" />
                 <a className="dropdown-item" href="#/settings" onClick={close}>
-                  <Octicon name="gear" size={16} /> OctoMobile 设置
+                  <Octicon name="gear" size={16} /> GitHub Mobile 设置
                 </a>
               </>
             )}
@@ -104,11 +104,13 @@ export function Header() {
                   {user ? (
                     <>
                       <div className="dropdown-userhead-name">
-                        {isDemo ? '演示账号' : '已登录为'} <strong>{user.login}</strong>
+                        {isDemo ? (config?.hasToken ? '演示账号' : '公开浏览') : '已登录为'} {isDemo && !config?.hasToken ? '' : <strong>{user.login}</strong>}
                       </div>
                       <div className="dropdown-userhead-sub">
                         {isDemo
-                          ? '公开演示数据 · 非你的账号'
+                          ? config?.hasToken
+                            ? '公开演示数据 · 非你的账号'
+                            : '未登录 · 浏览公共数据'
                           : config?.tokenSource === 'server'
                             ? '本地服务令牌'
                             : '已连接 GitHub · 登录状态已保存'}
@@ -148,18 +150,20 @@ export function Header() {
                 {isDemo ? (
                   <>
                     <a className="dropdown-item dropdown-accent" href="#/settings" onClick={close}>
-                      <Octicon name="key" size={16} /> 连接 GitHub
+                      <Octicon name="key" size={16} /> 登录 GitHub
                     </a>
-                    <button className="dropdown-item dropdown-danger" onClick={() => { close(); exitDemo() }}>
-                      <Octicon name="sign-out" size={16} /> 退出演示
-                    </button>
+                    {config?.hasToken && (
+                      <button className="dropdown-item dropdown-danger" onClick={() => { close(); exitDemo() }}>
+                        <Octicon name="sign-out" size={16} /> 退出演示
+                      </button>
+                    )}
                   </>
                 ) : (
                   <button className="dropdown-item dropdown-danger" onClick={() => { close(); signOut() }}>
                     <Octicon name="sign-out" size={16} /> 退出登录
                   </button>
                 )}
-                <div className="dropdown-version">OctoMobile v1.2.0</div>
+                <div className="dropdown-version">GitHub Mobile v1.3.0</div>
               </>
             )}
           </Dropdown>

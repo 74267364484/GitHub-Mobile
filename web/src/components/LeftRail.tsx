@@ -28,7 +28,7 @@ function RailLink({
 export function LeftRail() {
   const {
     user, repos, source, unreadCount, drawerOpen, setDrawerOpen, rateLimit,
-    theme, setTheme, defaultRepo,
+    theme, setTheme, defaultRepo, config,
   } = useApp()
   const route = useRoute()
   const close = () => setDrawerOpen(false)
@@ -48,7 +48,7 @@ export function LeftRail() {
         <div className="rail-mobile-head">
           <a href="#/" className="rail-brand" onClick={close}>
             <Octicon name="mark-github" size={24} />
-            <span>OctoMobile</span>
+            <span>GitHub Mobile</span>
           </a>
           <button className="icon-btn" onClick={close} aria-label="关闭导航">
             <Octicon name="x" size={18} />
@@ -57,7 +57,7 @@ export function LeftRail() {
 
         <HostCard />
 
-        <nav className="rail-nav" aria-label="OctoMobile 导航">
+        <nav className="rail-nav" aria-label="GitHub Mobile 导航">
           <div className="rail-section-label">主菜单</div>
           <RailLink href="#/" icon="home" label="首页" active={route.kind === 'home'} onClick={close} />
           <RailLink href="#/repos" icon="repo" label="仓库" active={route.kind === 'repositories'} onClick={close} />
@@ -119,7 +119,7 @@ export function LeftRail() {
             <a className="rail-user" href="#/profile" onClick={close}>
               <Avatar user={user} size={20} square={user.type === 'Organization'} />
               <span>{user.login}</span>
-              {isDemo && <span className="rail-demo-badge">演示</span>}
+              {isDemo && <span className="rail-demo-badge">{config?.hasToken ? '演示' : '公开'}</span>}
               <span className="rail-user-followers">{compact(user.followers)} 关注者</span>
             </a>
           )}
@@ -129,7 +129,7 @@ export function LeftRail() {
           <div className="rail-status">
             {isDemo ? (
               <span className="rail-status-badge rail-status-demo">
-                <Octicon name="sparkle" size={12} /> 演示模式
+                <Octicon name="sparkle" size={12} /> {config?.hasToken ? '演示模式' : '公开浏览'}
               </span>
             ) : (
               <span className="rail-status-badge rail-status-live">
@@ -159,12 +159,12 @@ export function LeftRail() {
                 <Octicon name="device-desktop" size={14} />
               </button>
             </div>
-            <a className="rail-settings" href="#/settings" onClick={close} title="OctoMobile 设置">
+            <a className="rail-settings" href="#/settings" onClick={close} title="GitHub Mobile 设置">
               <Octicon name="gear" size={14} />
             </a>
           </div>
           <div className="rail-version">
-            <span>OctoMobile v1.2.0</span>
+            <span>GitHub Mobile v1.3.0</span>
             <span>{defaultRepo ? `· ${defaultRepo.split('/')[1]}` : ''}</span>
           </div>
         </div>

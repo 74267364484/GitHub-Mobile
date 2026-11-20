@@ -45,7 +45,7 @@ export function ExplorePage() {
       <section className="explore-section">
         <div className="explore-section-head">
           <h2>话题</h2>
-          <span>点击话题在 OctoMobile 中搜索仓库</span>
+          <span>点击话题在 GitHub Mobile 中搜索仓库</span>
         </div>
         <div className="topic-grid">
           {topicCards.map((t) => (

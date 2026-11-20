@@ -1,4 +1,4 @@
-import { getClientToken } from './api'
+import { getClientToken, isDemoMode } from './api'
 import { isNative } from './native'
 
 export type DownloadKind =
@@ -176,6 +176,7 @@ async function downloadOnWeb(item: DownloadItem, target: Target): Promise<void> 
       {
         headers: {
           ...(token ? { 'x-gh-token': token } : {}),
+          ...(isDemoMode() && !token ? { 'x-gh-anonymous': '1' } : {}),
           'x-accept': target.accept,
         },
         cache: 'no-store',
@@ -252,6 +253,11 @@ export function initNativeDownloadEvents(): void {
     } else if (detail.state === 'error') {
       item.state = 'error'
       item.error = detail.error || '下载失败'
+    } else if (detail.state === 'cancelled') {
+      const idx = items.indexOf(item)
+      if (idx >= 0) items.splice(idx, 1)
+      emit()
+      return
     } else {
       item.state = 'downloading'
     }

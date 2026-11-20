@@ -17,7 +17,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('OctoMobile render error', error, info)
+    console.error('GitHub Mobile render error', error, info)
   }
 
   render() {

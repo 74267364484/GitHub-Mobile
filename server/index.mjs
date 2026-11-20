@@ -32,7 +32,15 @@ function loadEnv(file) {
 loadEnv(path.join(ROOT, '.env.local'))
 loadEnv(path.join(ROOT, '.env'))
 const NO_SERVER_TOKEN = process.env.OCTODECK_NO_SERVER_TOKEN === '1'
+const ALLOW_SERVER_TOKEN = process.env.OCTODECK_ALLOW_SERVER_TOKEN === '1'
 const SERVER_TOKEN = NO_SERVER_TOKEN ? '' : process.env.GITHUB_TOKEN || ''
+const SERVER_TOKEN_ENABLED = ALLOW_SERVER_TOKEN && Boolean(SERVER_TOKEN)
+
+function requestToken(req, clientToken) {
+  if (clientToken) return clientToken
+  if ((req.headers['x-gh-anonymous'] || '') === '1') return ''
+  return SERVER_TOKEN_ENABLED ? SERVER_TOKEN : ''
+}
 const LOGIN = process.env.GITHUB_LOGIN || ''
 const DEFAULT_REPO = process.env.DEFAULT_REPO || ''
 const SNAPSHOT_ONLY = process.env.OCTODECK_SNAPSHOT_ONLY === '1'
@@ -192,7 +200,7 @@ const imageCache = new Map()
 
 async function fetchImage(url, depth = 0) {
   if (imageCache.has(url)) return imageCache.get(url)
-  const headers = { 'user-agent': 'Mozilla/5.0 OctoMobile', accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8' }
+  const headers = { 'user-agent': 'Mozilla/5.0 GitHub Mobile', accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8' }
   const r = await requestUpstream({ url, headers, timeout: 20000 })
   if (r.status >= 300 && r.status < 400 && r.headers.location && depth < 3) {
     const next = new URL(r.headers.location, url).toString()
@@ -233,14 +241,14 @@ function proxyTest(mapping) {
               servername: hostname,
               path: '/rate_limit',
               method: 'GET',
-              headers: { host: hostname, 'user-agent': 'OctoMobile-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
+              headers: { host: hostname, 'user-agent': 'GitHub Mobile-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
               timeout: 9000,
             }
           : {
               hostname,
               path: '/rate_limit',
               method: 'GET',
-              headers: { 'user-agent': 'OctoMobile-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
+              headers: { 'user-agent': 'GitHub Mobile-Healthcheck', accept: 'application/vnd.github+json', connection: 'close' },
               timeout: 9000,
             },
         (res) => {
@@ -288,7 +296,7 @@ function proxyTest(mapping) {
       }
       tlsSock = tls.connect({ socket: sock, servername: hostname, ALPNProtocols: ['http/1.1'] }, () => {
         tlsSock.write(
-          `GET /rate_limit HTTP/1.1\r\nHost: ${hostname}\r\nUser-Agent: OctoMobile-Healthcheck\r\nAccept: application/vnd.github+json\r\nConnection: close\r\n\r\n`,
+          `GET /rate_limit HTTP/1.1\r\nHost: ${hostname}\r\nUser-Agent: GitHub Mobile-Healthcheck\r\nAccept: application/vnd.github+json\r\nConnection: close\r\n\r\n`,
         )
       })
       tlsSock.setTimeout(9000, () => finishOnce({ ok: false, error: 'TLS 超时' }))
@@ -398,7 +406,7 @@ function serveStatic(req, res, pathname) {
   }
   if (!file) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-    res.end(`<!doctype html><meta charset=utf-8><title>OctoMobile</title><body style="font:15px system-ui;padding:40px;background:#f6f8fa"><h2>OctoMobile 前端尚未构建</h2><p>请先运行 <code>cd web && npm run build</code>，或用 <code>npm run dev</code> 启动 Vite 开发服务器（5173）。</p><p>API 服务已在 8787 端口运行。</p>`)
+    res.end(`<!doctype html><meta charset=utf-8><title>GitHub Mobile</title><body style="font:15px system-ui;padding:40px;background:#f6f8fa"><h2>GitHub Mobile 前端尚未构建</h2><p>请先运行 <code>cd web && npm run build</code>，或用 <code>npm run dev</code> 启动 Vite 开发服务器（5173）。</p><p>API 服务已在 8787 端口运行。</p>`)
     return
   }
   const ext = path.extname(file).toLowerCase()
@@ -418,13 +426,13 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/config') {
       const clientToken = (req.headers['x-gh-token'] || '').toString().trim()
       json(res, 200, {
-        hasToken: SNAPSHOT_ONLY ? false : Boolean(clientToken || SERVER_TOKEN),
-        tokenSource: SNAPSHOT_ONLY ? 'none' : clientToken ? 'client' : SERVER_TOKEN ? 'server' : 'none',
+        hasToken: SNAPSHOT_ONLY ? false : Boolean(clientToken || SERVER_TOKEN_ENABLED),
+        tokenSource: SNAPSHOT_ONLY ? 'none' : clientToken ? 'client' : SERVER_TOKEN_ENABLED ? 'server' : 'none',
         login: LOGIN,
         defaultRepo: DEFAULT_REPO,
         host: hostState,
         native: false,
-        version: '1.2.0',
+        version: '1.3.0',
         proxy: Boolean(PROXY),
       })
       return
@@ -472,7 +480,7 @@ const server = http.createServer(async (req, res) => {
         return
       }
       const clientToken = (req.headers['x-gh-token'] || '').toString().trim()
-      const token = clientToken || SERVER_TOKEN
+      const token = requestToken(req, clientToken)
       if (!token) {
         json(res, 401, { message: '需要 GitHub Token 才能读取贡献数据。' })
         return
@@ -484,7 +492,7 @@ const server = http.createServer(async (req, res) => {
         headers: {
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
-          'user-agent': 'OctoMobile',
+          'user-agent': 'GitHub Mobile',
           accept: 'application/vnd.github+json',
         },
         body,
@@ -500,7 +508,7 @@ const server = http.createServer(async (req, res) => {
         return
       }
       const clientToken = (req.headers['x-gh-token'] || '').toString().trim()
-      const token = clientToken || SERVER_TOKEN
+      const token = requestToken(req, clientToken)
       const ghPath = url.searchParams.get('path') || '/'
       if (!ghPath.startsWith('/')) {
         json(res, 400, { message: 'invalid path' })
@@ -509,7 +517,7 @@ const server = http.createServer(async (req, res) => {
       const body = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) ? await readBody(req) : null
       const headers = {
         accept: req.headers.accept || 'application/vnd.github+json',
-        'user-agent': 'OctoMobile',
+        'user-agent': 'GitHub Mobile',
         'x-github-api-version': '2022-11-28',
       }
       if (token) headers.authorization = `Bearer ${token}`
@@ -566,14 +574,14 @@ const server = http.createServer(async (req, res) => {
       const wanted = sanitizeName(url.searchParams.get('name') || '')
       const accept = (req.headers['x-accept'] || '').toString() || 'application/vnd.github+json'
       const clientToken = (req.headers['x-gh-token'] || '').toString().trim()
-      const token = clientToken || SERVER_TOKEN
+      const token = requestToken(req, clientToken)
 
       let current = src
       let upstream = null
       for (let hop = 0; hop < 6; hop++) {
         const host = new URL(current).hostname
         const headers = {
-          'user-agent': 'OctoMobile',
+          'user-agent': 'GitHub Mobile',
           accept,
           'accept-encoding': 'identity',
           'x-github-api-version': '2022-11-28',
@@ -648,7 +656,7 @@ const server = http.createServer(async (req, res) => {
 })
 
 server.listen(PORT, HOST, () => {
-  console.log(`OctoMobile dev server → http://${HOST}:${PORT}`)
+  console.log(`GitHub Mobile dev server → http://${HOST}:${PORT}`)
   console.log(`GitHub API token: ${SERVER_TOKEN ? 'server-side configured' : 'not configured'}`)
   console.log(`Egress proxy: ${PROXY || 'none (direct + host mapping)'}`)
   console.log(`Host mapping: ${hostState.enabled ? hostState.mappingId : 'disabled'}`)
