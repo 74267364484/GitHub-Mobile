@@ -3,8 +3,10 @@ import type { Issue, IssueLabel, Repository } from '../types'
 import { useApi } from '../lib/hooks'
 import { IssueRow } from '../components/IssueRow'
 import { Octicon } from '../components/Octicon'
-import { Button, ButtonLink, Counter, EmptyState, Skeleton } from '../components/ui'
-import { repoHref } from '../lib/router'
+import { IssueDialog } from '../components/WriteDialogs'
+import { Button, Counter, EmptyState, Skeleton } from '../components/ui'
+import { repoHref, navigate } from '../lib/router'
+import { useApp } from '../state/AppState'
 
 export function RepoIssuesPage({
   repo, owner, repoName, openCount,
@@ -15,12 +17,23 @@ export function RepoIssuesPage({
   openCount?: number | null
 }) {
   const full = `${owner}/${repoName}`
+  const { config, showToast } = useApp()
   const [state, setState] = useState<'open' | 'closed'>('open')
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [author, setAuthor] = useState('')
   const [label, setLabel] = useState('')
   const [sort, setSort] = useState<'newest' | 'oldest' | 'comments' | 'updated'>('newest')
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const openCreate = () => {
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能创建议题', 'info')
+      navigate('/settings')
+      return
+    }
+    setCreateOpen(true)
+  }
 
   const issuesState = useApi<Issue[]>(`/repos/${full}/issues?state=${state}&per_page=30&page=${page}`)
   const closedCount = useApi<{ total_count: number }>(
@@ -75,9 +88,9 @@ export function RepoIssuesPage({
           </div>
         </div>
         <div className="list-toolbar-right">
-          <ButtonLink href={`https://github.com/${full}/issues/new/choose`} external variant="primary" size="sm" icon="plus">
+          <Button variant="primary" size="sm" icon="plus" onClick={openCreate}>
             新建议题
-          </ButtonLink>
+          </Button>
         </div>
       </div>
 
@@ -146,9 +159,9 @@ export function RepoIssuesPage({
               icon="issue-opened"
               title="欢迎使用议题！"
               action={
-                <ButtonLink href={`https://github.com/${full}/issues/new/choose`} external variant="primary" icon="plus">
+                <Button variant="primary" icon="plus" onClick={openCreate}>
                   新建议题
-                </ButtonLink>
+                </Button>
               }
             >
               <p>议题用于跟踪待办、Bug、功能请求等。创建后会出现在这里，并支持搜索与筛选。</p>
@@ -164,6 +177,19 @@ export function RepoIssuesPage({
             </EmptyState>
           )}
         </div>
+      )}
+      {createOpen && (
+        <IssueDialog
+          repo={full}
+          mode="create"
+          onClose={() => setCreateOpen(false)}
+          onSaved={(issue) => {
+            setCreateOpen(false)
+            issuesState.reload()
+            showToast(`议题 #${issue.number} 已创建`, 'success')
+            navigate(`/${owner}/${repoName}/issues/${issue.number}`)
+          }}
+        />
       )}
     </div>
   )

@@ -4,27 +4,40 @@
 >
 > 独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是其商标；本项目的名称仅用于说明兼容目标，不代表官方应用。
 
-![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.3.0-black)
+![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.4.0-black)
 
 ## 截图
 
 | 无需登录 · 公开浏览首页 | 私有仓库列表（登录后） |
 |---|---|
-| ![](docs/screenshots/v13-anon-home.png) | ![](docs/screenshots/v13-private-repos.png) |
-| **手机端代码菜单 · 完整显示** | **手机端下载托盘** |
-| ![](docs/screenshots/v13-mobile-menu.png) | ![](docs/screenshots/v13-mobile-tray.png) |
-| **仓库内的发行版入口与下载** | **按需登录（设置页）** |
-| ![](docs/screenshots/v13-releases.png) | ![](docs/screenshots/v13-settings.png) |
+| ![](docs/screenshots/v14-anon-home.png) | ![](docs/screenshots/v14-private-repos.png) |
+| **Releases 前置到第二个导航** | **手机端代码菜单 · 完整显示** |
+| ![](docs/screenshots/v14-releases.png) | ![](docs/screenshots/v14-mobile-menu.png) |
+| **应用内新建仓库** | **应用内编辑文件** |
+| ![](docs/screenshots/v14-new-repo.png) | ![](docs/screenshots/v14-file-editor.png) |
 
 ---
 
 ## 下载
 
-- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.3.0.apk`
-- 大小：3,966,406 字节（约 3.8 MB），debug 签名，可直接侧载
-- SHA-256：`56c23efb60699b55a9206a2d1e54f00ee9fa153424a7561b86e1659978f036f3`
+- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.4.0.apk`
+- 大小：3,973,054 字节（约 3.8 MB），debug 签名，可直接侧载
+- SHA-256：`031b644422582bef748a9637e1f191920bf3d25aff42e6cd71f3827436847a51`
 
 ---
+
+## v1.4.0 更新
+
+- **Releases 前置**：仓库导航改为「代码 / Releases / 议题 / 拉取请求 / Actions / …」，英文名与 GitHub 网页一致，第二个位置直接可见。
+- **写操作搬到应用内**（登录后）：
+  - 新建仓库；创建、编辑、删除、上传仓库文件；提交信息可自定义。
+  - 新建议题、编辑标题与描述、关闭/重新打开、评论。
+  - 新建拉取请求、编辑、关闭/重新打开、在应用内合并（支持合并提交 / 压缩 / 变基）。
+  - 起草并发布 Release；分叉仓库后自动跳到你的 fork。
+  - 仓库设置：名称、描述、网站、话题、功能开关、默认分支、可见性、归档、删除（需输入完整仓库名确认）。
+  - Actions：重新运行、取消运行、下载日志。
+- **减少外跳**：上述主流程不再跳转 github.com；仅 Projects / Wiki / Discussions、访问控制、Webhooks、Gist、仓库转移等高级功能保留外链，并在文案中明确标注。
+- **手机端对话框**：新建仓库、议题、PR、Release、文件编辑均使用自适应宽度的对话框，字段单列排布，避免横向溢出。
 
 ## v1.3.0 更新
 
@@ -99,7 +112,7 @@ GitHub Mobile 不是 GitHub 的封装壳，而是一套按 GitHub 视觉与信�
 | 登录 / 登录态恢复 | 按需在设置中登录，Keystore/localStorage 持久化，失效自动回公开浏览 |
 | Home / 活动流 / 贡献日历 | 公开数据或实时 API |
 | 仓库代码 / 分支 / 目录 / 文件 / README | 完整，含语法高亮、文件下载、源码打包下载 |
-| 发行版 | 仓库导航独立标签，资源与源码下载 |
+| Releases | 导航第二位，应用内发布、资源与源码下载 |
 | Issues 列表 / 详情 / 时间线 / 评论 | 列表筛选/搜索；评论可发布（需 Token） |
 | Pull requests 列表 / 会话 / Commits / Files changed | 真实 diff、行号、增删配色；Diff/Patch 下载 |
 | Actions | workflow 列表、run 列表、运行日志下载 |
@@ -159,7 +172,7 @@ cd web && npm run dev                # http://127.0.0.1:5173
 
 ```bash
 ./scripts/build-apk.sh
-# 产物：GitHubMobile-1.3.0.apk（debug 签名，可直接侧载）
+# 产物：GitHubMobile-1.4.0.apk（debug 签名，可直接侧载）
 ```
 
 如果 JDK / SDK 不在默认路径：
@@ -184,16 +197,24 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 ### 浏览器端（Playwright + Chromium）
 
 - **无凭证进入**：清空 localStorage 后打开首页，不出现登录页；顶部显示「公开浏览」，标题为「首页 · GitHub Mobile」，可直接进入 `sindresorhus/awesome` 等仓库。
-- **发行版入口**：仓库标签为「代码 / 议题 / 拉取请求 / Actions / 发行版 / 项目 / Wiki / 安全 / 洞察」，点击进入发行版页并显示版本与资源。
+- **Releases 前置**：仓库标签为「代码 / Releases / 议题 / 拉取请求 / Actions / 项目 / Wiki / 安全 / 洞察」，第二个位置可直接进入发行版页。
 - **手机端菜单**：390 × 844 下代码菜单边界为 `x=6, y=271.5, 宽 374, 高 315`，完全落在视口内；下载 ZIP / TAR.GZ 可见可点。
 - **私有仓库**：Token 登录后 `/repos` 共 8 个仓库，其中 6 个带「私有」徽标；私有发行版页显示资产。
 - **真实下载**：公开仓库 ZIP（16.8 MB，ZIP 魔数）、私有发行版源码 ZIP（2.6 MB）、私有 Release 附件（APK）、PR Diff、Actions 日志均实际落盘并校验。
+- **应用内写入（临时私有仓库，测试后已删除）**：
+  - 新建仓库 → 仓库页正常打开；
+  - 创建 `hello.md` → 编辑为 v2 → 页面显示新内容；
+  - 新建议题 → 编辑标题 → 标题更新；
+  - 发布 `v0.1.0` Release → 发行版卡片出现；
+  - 设置页修改描述 → 提示「仓库设置已保存」；
+  - 删除文件 → 返回目录；删除仓库 → API 返回 404。
+- **PR 闭环（临时仓库）**：从 `feature` 向 `main` 创建 PR → 应用内选择合并方式并合并 → 页面显示「已合并」，API `merged_at` 已写入。
 - 所有页面 `scrollWidth - innerWidth = 0`，无横向溢出。
 
 ### Android
 
 - `:app:testDebugUnitTest`：7 个 JVM 测试全部通过（Host 映射解析、禁用回退、官方直连、自定义合法/非法 IP、状态 JSON 解析与损坏回退）。
-- `:app:assembleDebug`：`versionCode 4`、`versionName 1.3.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
+- `:app:assembleDebug`：`versionCode 5`、`versionName 1.4.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
 - 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
 - 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
 - 模拟器点击「下载 ZIP」会弹出系统文件选择器（默认 Downloads、文件名 `awesome-main.zip`，可改目录与文件名）；按返回取消后，下载托盘项自动移除。沙箱模拟器无外网，实际写入以真机为准。

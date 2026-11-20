@@ -18,9 +18,10 @@ import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
 import { BranchPicker } from '../components/BranchPicker'
 import { GoToFileDialog } from '../components/GoToFileDialog'
+import { FileDialog } from '../components/WriteDialogs'
 import { Button, Dialog, Dropdown, EmptyState, Skeleton } from '../components/ui'
 import { useApi } from '../lib/hooks'
-import { gh, loadImage } from '../lib/api'
+import { gh, invalidateCache, loadImage } from '../lib/api'
 import { copyText } from '../lib/clipboard'
 import { startDownload } from '../lib/downloads'
 import {
@@ -112,7 +113,7 @@ export function RepoCodePage({
   repoName: string
   route: Extract<Route, { kind: 'repo' }>
 }) {
-  const { showToast, source } = useApp()
+  const { showToast, source, config } = useApp()
   const defaultBranch = repo.default_branch || 'main'
   const branch = route.branch || defaultBranch
   const currentPath = (route.path || '').replace(/^\/+|\/+$/g, '')
@@ -157,7 +158,7 @@ export function RepoCodePage({
     ? (readmeData.encoding === 'base64' ? b64DecodeUnicode(readmeData.content) : readmeData.content)
     : ''
 
-  const fileState = useApi<{ content: string; encoding: string; size: number; name: string; path: string; download_url?: string }>(
+  const fileState = useApi<{ content: string; encoding: string; size: number; name: string; path: string; sha?: string; download_url?: string }>(
     isFile ? `/repos/${full}/contents/${encodePath(currentPath)}?ref=${encodeURIComponent(branch)}` : null,
   )
   const fileText = fileState.data?.content
@@ -197,6 +198,40 @@ export function RepoCodePage({
 
   const [branchOpen, setBranchOpen] = useState(false)
   const [goToFileOpen, setGoToFileOpen] = useState(false)
+  const [fileDialog, setFileDialog] = useState<'create' | 'edit' | 'upload' | null>(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const requireLogin = (): boolean => {
+    if (config?.hasToken) return true
+    showToast('登录 GitHub 后才能修改仓库文件', 'info')
+    navigate('/settings')
+    return false
+  }
+
+  const openFileDialog = (mode: 'create' | 'edit' | 'upload') => {
+    if (!requireLogin()) return
+    setFileDialog(mode)
+  }
+
+  const deleteFile = async () => {
+    if (!fileState.data?.sha || deleting) return
+    setDeleting(true)
+    try {
+      await gh(`/repos/${full}/contents/${encodePath(currentPath)}`, {
+        method: 'DELETE',
+        body: { message: `Delete ${currentPath}`, sha: fileState.data.sha, branch },
+      })
+      invalidateCache()
+      setDeleteOpen(false)
+      showToast('文件已删除', 'success')
+      navigate(`/${owner}/${repoName}/tree/${encodeURIComponent(branch)}`)
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '删除失败', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const breadcrumb = pathSegments(currentPath)
   const copy = async (text: string, label = '已复制') => {
@@ -254,12 +289,12 @@ export function RepoCodePage({
           >
             {(close) => (
               <>
-                <a className="dropdown-item" href={`https://github.com/${full}/new/${encodeURIComponent(branch)}`} target="_blank" rel="noreferrer" onClick={close}>
+                <button className="dropdown-item" onClick={() => { close(); openFileDialog('create') }}>
                   <Octicon name="file" size={16} /> 创建新文件
-                </a>
-                <a className="dropdown-item" href={`https://github.com/${full}/upload/${encodeURIComponent(branch)}`} target="_blank" rel="noreferrer" onClick={close}>
+                </button>
+                <button className="dropdown-item" onClick={() => { close(); openFileDialog('upload') }}>
                   <Octicon name="upload" size={16} /> 上传文件
-                </a>
+                </button>
               </>
             )}
           </Dropdown>
@@ -338,6 +373,12 @@ export function RepoCodePage({
                   </a>
                   <button className="btn btn-sm btn-default" onClick={() => startDownload({ kind: 'file', repo: full, ref: branch, path: currentPath })}>
                     <Octicon name="download" size={14} /> 下载文件
+                  </button>
+                  <button className="btn btn-sm btn-default" onClick={() => openFileDialog('edit')}>
+                    <Octicon name="pencil" size={14} /> 编辑
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => requireLogin() && setDeleteOpen(true)}>
+                    <Octicon name="trash" size={14} /> 删除
                   </button>
                 </div>
               </div>
@@ -564,6 +605,47 @@ export function RepoCodePage({
             navigate(blobHref(owner, repoName, branch, p).slice(1))
           }}
         />
+      )}
+
+      {fileDialog && (
+        <FileDialog
+          repo={full}
+          branch={branch}
+          mode={fileDialog}
+          path={fileDialog === 'edit' ? currentPath : undefined}
+          pathPrefix={currentPath && !isFile ? currentPath + '/' : ''}
+          initialContent={fileDialog === 'edit' ? fileText : ''}
+          sha={fileDialog === 'edit' ? fileState.data?.sha : undefined}
+          onClose={() => setFileDialog(null)}
+          onSaved={(p) => {
+            setFileDialog(null)
+            invalidateCache()
+            showToast('更改已提交', 'success')
+            treeState.reload()
+            if (fileDialog === 'edit') fileState.reload()
+            navigate(`/${owner}/${repoName}/blob/${encodeURIComponent(branch)}/${p.split('/').map(encodeURIComponent).join('/')}`)
+          }}
+        />
+      )}
+
+      {deleteOpen && (
+        <Dialog
+          title="删除文件"
+          subtitle={`${full} · ${currentPath}`}
+          onClose={() => setDeleteOpen(false)}
+          width={480}
+          footer={(
+            <div className="dialog-actions">
+              <Button onClick={() => setDeleteOpen(false)} disabled={deleting}>取消</Button>
+              <Button variant="danger" icon="trash" onClick={deleteFile} disabled={deleting}>
+                {deleting ? '删除中…' : '确认删除'}
+              </Button>
+            </div>
+          )}
+        >
+          <p className="settings-paragraph">删除后会立即提交到 <code>{branch}</code> 分支，可从提交历史恢复。</p>
+          <p className="settings-paragraph">{currentPath}</p>
+        </Dialog>
       )}
     </div>
   )

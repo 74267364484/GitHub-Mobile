@@ -3,7 +3,7 @@ import type { RepoTab } from '../lib/router'
 import { repoHref, navigate } from '../lib/router'
 import type { Repository } from '../types'
 import { useApp } from '../state/AppState'
-import { gh, openExternal } from '../lib/api'
+import { gh, invalidateCache } from '../lib/api'
 import { compact } from '../lib/format'
 import { Octicon } from './Octicon'
 import { Button, Counter, Dropdown, Skeleton, Spinner } from './ui'
@@ -24,6 +24,7 @@ export function RepoHeader({
   const [starred, setStarred] = useState(false)
   const [starCount, setStarCount] = useState(repo?.stargazers_count || 0)
   const [starLoading, setStarLoading] = useState(false)
+  const [forking, setForking] = useState(false)
   const full = `${owner}/${repoName}`
 
   useEffect(() => {
@@ -135,10 +136,27 @@ export function RepoHeader({
             size="sm"
             className="repo-action-btn"
             icon="repo-forked"
-            disabled={!repo}
-            onClick={() => openExternal(`https://github.com/${owner}/${repoName}/fork`)}
+            disabled={!repo || forking}
+            onClick={async () => {
+              if (!config?.hasToken) {
+                showToast('登录 GitHub 后才能分叉仓库', 'info')
+                navigate('/settings')
+                return
+              }
+              setForking(true)
+              try {
+                const forked = await gh<Repository>(`/repos/${owner}/${repoName}/forks`, { method: 'POST', body: {} })
+                invalidateCache()
+                showToast(`已分叉为 ${forked.full_name}`, 'success')
+                navigate(`/${forked.owner.login}/${forked.name}`)
+              } catch (e) {
+                showToast(e instanceof Error ? e.message : '分叉失败', 'error')
+              } finally {
+                setForking(false)
+              }
+            }}
           >
-            <span className="repo-action-label">分叉</span>
+            <span className="repo-action-label">{forking ? '分叉中…' : '分叉'}</span>
             <Counter>{(repo?.forks_count || 0).toLocaleString()}</Counter>
           </Button>
 
@@ -161,6 +179,9 @@ export function RepoHeader({
         <a className={`repo-tab ${tab === 'code' ? 'active' : ''}`} href={`#${base}`}>
           <Octicon name="code" size={16} /> 代码
         </a>
+        <a className={`repo-tab ${tab === 'releases' ? 'active' : ''}`} href={`#${base}/releases`}>
+          <Octicon name="tag" size={16} /> Releases
+        </a>
         <a className={`repo-tab ${tab === 'issues' ? 'active' : ''}`} href={`#${base}/issues`}>
           <Octicon name="issue-opened" size={16} /> 议题
           {issueCount != null && <span className="repo-tab-count">{issueCount.toLocaleString()}</span>}
@@ -171,9 +192,6 @@ export function RepoHeader({
         </a>
         <a className={`repo-tab ${tab === 'actions' ? 'active' : ''}`} href={`#${base}/actions`}>
           <Octicon name="play" size={16} /> Actions
-        </a>
-        <a className={`repo-tab ${tab === 'releases' ? 'active' : ''}`} href={`#${base}/releases`}>
-          <Octicon name="tag" size={16} /> 发行版
         </a>
         <a className={`repo-tab ${tab === 'projects' ? 'active' : ''}`} href={`#${base}/projects`}>
           <Octicon name="table" size={16} /> 项目

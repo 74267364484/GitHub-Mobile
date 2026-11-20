@@ -152,7 +152,7 @@ export function AuthPage() {
         </div>
 
         <div className="auth-foot">
-          <span>GitHub Mobile v1.3.0</span>
+          <span>GitHub Mobile v1.4.0</span>
           <span>·</span>
           <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
           <span>·</span>

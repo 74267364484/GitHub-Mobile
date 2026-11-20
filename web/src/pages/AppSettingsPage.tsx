@@ -66,7 +66,7 @@ export function AppSettingsPage() {
     <div className="settings-page app-settings">
       <div className="page-heading">
         <h1>设置</h1>
-        <span className="page-heading-sub">GitHub Mobile v1.3.0</span>
+        <span className="page-heading-sub">GitHub Mobile v1.4.0</span>
       </div>
 
       <div className="settings-layout">
@@ -290,7 +290,7 @@ export function AppSettingsPage() {
               <div className="about-app-head">
                 <span className="about-app-logo"><Octicon name="mark-github" size={40} /></span>
                 <div>
-                  <h3>GitHub Mobile <span className="about-version">v1.3.0</span></h3>
+                  <h3>GitHub Mobile <span className="about-version">v1.4.0</span></h3>
                   <p>与 GitHub 网页同构的 Android 客户端，内置可切换的 Host 映射。</p>
                 </div>
               </div>

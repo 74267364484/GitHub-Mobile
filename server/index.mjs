@@ -432,7 +432,7 @@ const server = http.createServer(async (req, res) => {
         defaultRepo: DEFAULT_REPO,
         host: hostState,
         native: false,
-        version: '1.3.0',
+        version: '1.4.0',
         proxy: Boolean(PROXY),
       })
       return

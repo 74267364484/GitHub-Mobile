@@ -164,7 +164,7 @@ export function LeftRail() {
             </a>
           </div>
           <div className="rail-version">
-            <span>GitHub Mobile v1.3.0</span>
+            <span>GitHub Mobile v1.4.0</span>
             <span>{defaultRepo ? `· ${defaultRepo.split('/')[1]}` : ''}</span>
           </div>
         </div>

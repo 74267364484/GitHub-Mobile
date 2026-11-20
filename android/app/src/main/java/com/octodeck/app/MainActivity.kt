@@ -176,7 +176,7 @@ class MainActivity : ComponentActivity() {
             javaScriptCanOpenWindowsAutomatically = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " GitHub Mobile/1.3 Android"
+            userAgentString = userAgentString + " GitHub Mobile/1.4 Android"
         }
 
         val assetLoader = WebViewAssetLoader.Builder()

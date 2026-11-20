@@ -3,7 +3,10 @@ import type { PullRequest, Repository } from '../types'
 import { useApi } from '../lib/hooks'
 import { IssueRow } from '../components/IssueRow'
 import { Octicon } from '../components/Octicon'
-import { Button, ButtonLink, Counter, EmptyState, Skeleton } from '../components/ui'
+import { PullDialog } from '../components/WriteDialogs'
+import { Button, Counter, EmptyState, Skeleton } from '../components/ui'
+import { navigate } from '../lib/router'
+import { useApp } from '../state/AppState'
 
 export function RepoPullsPage({
   repo, owner, repoName, openCount,
@@ -14,10 +17,21 @@ export function RepoPullsPage({
   openCount?: number | null
 }) {
   const full = `${owner}/${repoName}`
+  const { config, showToast } = useApp()
   const [state, setState] = useState<'open' | 'closed'>('open')
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<'newest' | 'oldest' | 'recent'>('newest')
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const openCreate = () => {
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能创建拉取请求', 'info')
+      navigate('/settings')
+      return
+    }
+    setCreateOpen(true)
+  }
 
   const pullsState = useApi<PullRequest[]>(
     `/repos/${full}/pulls?state=${state}&per_page=30&page=${page}&sort=created&direction=desc`,
@@ -53,9 +67,9 @@ export function RepoPullsPage({
           </div>
         </div>
         <div className="list-toolbar-right">
-          <ButtonLink href={`https://github.com/${full}/compare`} external variant="primary" size="sm" icon="git-pull-request">
+          <Button variant="primary" size="sm" icon="git-pull-request" onClick={openCreate}>
             新建拉取请求
-          </ButtonLink>
+          </Button>
         </div>
       </div>
 
@@ -104,9 +118,9 @@ export function RepoPullsPage({
               icon="git-pull-request"
               title="欢迎使用拉取请求！"
               action={
-                <ButtonLink href={`https://github.com/${full}/compare`} external variant="primary" icon="git-pull-request">
+                <Button variant="primary" icon="git-pull-request" onClick={openCreate}>
                   新建拉取请求
-                </ButtonLink>
+                </Button>
               }
             >
               <p>拉取请求让你和其他人协作修改代码。创建后会出现在这里，并支持搜索与筛选。</p>
@@ -122,6 +136,19 @@ export function RepoPullsPage({
             </EmptyState>
           )}
         </div>
+      )}
+      {createOpen && (
+        <PullDialog
+          repo={full}
+          defaultBranch={repo.default_branch}
+          onClose={() => setCreateOpen(false)}
+          onCreated={(pr) => {
+            setCreateOpen(false)
+            pullsState.reload()
+            showToast(`拉取请求 #${pr.number} 已创建`, 'success')
+            navigate(`/${owner}/${repoName}/pulls/${pr.number}`)
+          }}
+        />
       )}
     </div>
   )

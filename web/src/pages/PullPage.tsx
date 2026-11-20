@@ -4,6 +4,7 @@ import { useApi, useDocumentTitle } from '../lib/hooks'
 import { useApp } from '../state/AppState'
 import { gh, invalidateCache, openExternal } from '../lib/api'
 import { Octicon } from '../components/Octicon'
+import { IssueDialog } from '../components/WriteDialogs'
 import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
 import { TimelineCard } from './IssuePage'
@@ -34,6 +35,9 @@ export function PullPage({
   const { config, showToast, user } = useApp()
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [acting, setActing] = useState(false)
+  const [mergeMethod, setMergeMethod] = useState<'merge' | 'squash' | 'rebase'>('merge')
 
   useDocumentTitle(pr ? `${pr.title} · Pull request #${pr.number}` : '拉取请求')
 
@@ -81,7 +85,36 @@ export function PullPage({
     }
   }
 
-  const merge = () => openExternal(`https://github.com/${full}/pull/${number}`)
+  const merge = async () => {
+    if (!pr || acting) return
+    setActing(true)
+    try {
+      await gh(`/repos/${full}/pulls/${number}/merge`, { method: 'PUT', body: { merge_method: mergeMethod } })
+      invalidateCache()
+      prState.reload()
+      showToast('拉取请求已合并', 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '合并失败', 'error')
+    } finally {
+      setActing(false)
+    }
+  }
+
+  const toggleState = async () => {
+    if (!pr || acting) return
+    setActing(true)
+    const next = pr.state === 'open' ? 'closed' : 'open'
+    try {
+      await gh(`/repos/${full}/pulls/${number}`, { method: 'PATCH', body: { state: next } })
+      invalidateCache()
+      prState.reload()
+      showToast(next === 'closed' ? '拉取请求已关闭' : '拉取请求已重新打开', 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+    } finally {
+      setActing(false)
+    }
+  }
 
   return (
     <div className="issue-detail pull-detail">
@@ -102,7 +135,7 @@ export function PullPage({
             {' '}· {timeAgo(pr.created_at)}
           </span>
           <span className="issue-detail-spacer" />
-          <ButtonLink href={`https://github.com/${full}/pull/${pr.number}`} external size="sm" icon="pencil">编辑</ButtonLink>
+          <Button size="sm" icon="pencil" onClick={() => setEditOpen(true)} disabled={!canWrite}>编辑</Button>
           <Dropdown width={220} trigger={<Button size="sm" icon="kebab-horizontal" aria-label="拉取请求操作" />}>
             {(close) => (
               <>
@@ -177,7 +210,9 @@ export function PullPage({
                 <div className="comment-box-foot">
                   <span className="comment-hint">支持 Markdown</span>
                   <span className="comment-foot-spacer" />
-                  <Button size="sm" onClick={() => openExternal(`https://github.com/${full}/pull/${pr.number}`)}>关闭拉取请求</Button>
+                  <Button size="sm" onClick={toggleState} disabled={!canWrite || acting}>
+                    {pr.state === 'open' ? '关闭拉取请求' : '重新打开'}
+                  </Button>
                   <Button size="sm" variant="primary" disabled={!canWrite || !body.trim() || submitting} onClick={submitComment}>
                     {submitting ? '评论中…' : '评论'}
                   </Button>
@@ -195,13 +230,24 @@ export function PullPage({
                       <div className="merge-box-sub">
                         {pr.draft
                           ? '此拉取请求仍是草稿。标记为可审查后才能合并。'
-                          : '可以自动合并，前往 GitHub 完成操作。'}
+                          : '可直接在应用内完成合并，无需跳转 GitHub。'}
                       </div>
                     </div>
                   </div>
                   <div className="merge-box-actions">
-                    <Button variant="primary" icon="git-merge" onClick={merge} disabled={pr.mergeable === false}>
-                      合并拉取请求
+                    <select
+                      className="form-select merge-method"
+                      value={mergeMethod}
+                      onChange={(e) => setMergeMethod(e.target.value as typeof mergeMethod)}
+                      aria-label="合并方式"
+                      disabled={!canWrite || acting}
+                    >
+                      <option value="merge">创建合并提交</option>
+                      <option value="squash">压缩合并</option>
+                      <option value="rebase">变基合并</option>
+                    </select>
+                    <Button variant="primary" icon="git-merge" onClick={merge} disabled={!canWrite || pr.mergeable === false || acting}>
+                      {acting ? '合并中…' : '合并拉取请求'}
                     </Button>
                   </div>
                 </div>
@@ -316,6 +362,21 @@ export function PullPage({
           )}
         </aside>
       </div>
+
+      {editOpen && (
+        <IssueDialog
+          repo={full}
+          mode="edit"
+          issue={pr}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false)
+            prState.reload()
+            invalidateCache()
+            showToast('拉取请求已更新', 'success')
+          }}
+        />
+      )}
     </div>
   )
 }

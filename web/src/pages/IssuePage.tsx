@@ -5,6 +5,7 @@ import { useApp } from '../state/AppState'
 import { gh, invalidateCache, openExternal } from '../lib/api'
 import { copyText } from '../lib/clipboard'
 import { Octicon } from '../components/Octicon'
+import { IssueDialog } from '../components/WriteDialogs'
 import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
 import { IssueRow, useRedirectIfPull } from '../components/IssueRow'
@@ -89,6 +90,7 @@ export function IssuePage({
   const [body, setBody] = useState('')
   const [tab, setTab] = useState<'write' | 'preview'>('write')
   const [submitting, setSubmitting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   useRedirectIfPull(issue, owner, repoName)
   useDocumentTitle(issue ? `${issue.title} · #${issue.number}` : '议题')
@@ -163,14 +165,14 @@ export function IssuePage({
             {issue.comments} 条评论
           </span>
           <span className="issue-detail-spacer" />
-          <ButtonLink
-            href={`https://github.com/${full}/issues/${issue.number}`}
-            external
+          <Button
             size="sm"
             icon="pencil"
+            onClick={() => setEditOpen(true)}
+            disabled={!canWrite}
           >
             编辑
-          </ButtonLink>
+          </Button>
           <Dropdown
             width={220}
             trigger={<Button size="sm" icon="kebab-horizontal" aria-label="议题操作" />}
@@ -323,6 +325,21 @@ export function IssuePage({
           </div>
         </aside>
       </div>
+
+      {editOpen && (
+        <IssueDialog
+          repo={full}
+          mode="edit"
+          issue={issue}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false)
+            issueState.reload()
+            invalidateCache()
+            showToast('议题已更新', 'success')
+          }}
+        />
+      )}
     </div>
   )
 }

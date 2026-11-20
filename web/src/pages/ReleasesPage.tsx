@@ -1,16 +1,31 @@
+import { useState } from 'react'
 import type { Release, Repository } from '../types'
 import { useApi } from '../lib/hooks'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
-import { ButtonLink, EmptyState, Skeleton } from '../components/ui'
+import { NewReleaseDialog } from '../components/WriteDialogs'
+import { Button, ButtonLink, EmptyState, Skeleton } from '../components/ui'
 import { formatBytes, formatDate, timeAgo } from '../lib/format'
 import { startDownload } from '../lib/downloads'
+import { useApp } from '../state/AppState'
+import { navigate } from '../lib/router'
 
 export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owner: string; repoName: string }) {
   const full = `${owner}/${repoName}`
   const state = useApi<Release[]>(`/repos/${full}/releases?per_page=30`)
   const releases = state.data || []
+  const { config, showToast } = useApp()
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const openCreate = () => {
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能创建发行版', 'info')
+      navigate('/settings')
+      return
+    }
+    setCreateOpen(true)
+  }
 
   return (
     <div className="releases-page">
@@ -19,9 +34,9 @@ export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owne
           <h2>发行版</h2>
           <p>发行版是可部署的项目版本，包含说明和可下载的资源。</p>
         </div>
-        <ButtonLink href={`https://github.com/${full}/releases/new`} external variant="primary" size="sm" icon="tag">
+        <Button variant="primary" size="sm" icon="tag" onClick={openCreate}>
           起草新发行版
-        </ButtonLink>
+        </Button>
       </div>
 
       {state.loading && (
@@ -113,11 +128,24 @@ export function ReleasesPage({ repo, owner, repoName }: { repo: Repository; owne
             <span className="blankslate-icon"><Octicon name="tag" size={24} /></span>
             <h3>这里还没有发行版</h3>
             <p>创建发行版，打包软件、发行说明和二进制文件，供其他人使用。</p>
-            <a className="btn btn-primary" href={`https://github.com/${full}/releases/new`} target="_blank" rel="noreferrer">
-              <Octicon name="plus" size={16} /> 创建新发行版
-            </a>
+            <Button variant="primary" icon="plus" onClick={openCreate}>
+              创建新发行版
+            </Button>
           </div>
         </div>
+      )}
+
+      {createOpen && (
+        <NewReleaseDialog
+          repo={full}
+          defaultBranch={repo.default_branch}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => {
+            setCreateOpen(false)
+            state.reload()
+            showToast('发行版已发布', 'success')
+          }}
+        />
       )}
     </div>
   )

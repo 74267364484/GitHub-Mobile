@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { Repository, Workflow, WorkflowRun } from '../types'
 import { useApi } from '../lib/hooks'
-import { openExternal } from '../lib/api'
+import { gh, invalidateCache, openExternal } from '../lib/api'
 import { startDownload } from '../lib/downloads'
+import { useApp } from '../state/AppState'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
 import { Skeleton } from '../components/ui'
@@ -37,6 +38,8 @@ export function ActionsPage({
 }) {
   const full = `${owner}/${repoName}`
   const branch = repo.default_branch || 'main'
+  const { config, showToast } = useApp()
+  const [busyRun, setBusyRun] = useState<number | null>(null)
   const [workflowId, setWorkflowId] = useState<number | null>(null)
   const workflowsState = useApi<{ workflows: Workflow[]; total_count: number }>(`/repos/${full}/actions/workflows`)
   const runsState = useApi<{ workflow_runs: WorkflowRun[]; total_count: number }>(
@@ -49,6 +52,24 @@ export function ActionsPage({
   const runs = runsState.data?.workflow_runs || []
   const current = workflows.find((w) => w.id === workflowId)
   const actionsDisabled = Boolean(workflowsState.error)
+
+  const runAction = async (runId: number, action: 'rerun' | 'cancel') => {
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能操作 Actions', 'info')
+      return
+    }
+    setBusyRun(runId)
+    try {
+      await gh(`/repos/${full}/actions/runs/${runId}/${action}`, { method: 'POST', body: {} })
+      invalidateCache()
+      runsState.reload()
+      showToast(action === 'rerun' ? '已重新运行' : '已取消运行', 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+    } finally {
+      setBusyRun(null)
+    }
+  }
 
   return (
     <div className="actions-layout">
@@ -122,6 +143,27 @@ export function ActionsPage({
                   <div className="run-side">
                     <span>{timeAgo(run.created_at)}</span>
                     <span className="run-duration">{formatDuration(run.created_at, run.updated_at)}</span>
+                    {run.status === 'in_progress' || run.status === 'queued' ? (
+                      <button
+                        className="run-download"
+                        title="取消运行"
+                        aria-label="取消运行"
+                        disabled={busyRun === run.id}
+                        onClick={(e) => { e.stopPropagation(); runAction(run.id, 'cancel') }}
+                      >
+                        <Octicon name="stop" size={14} />
+                      </button>
+                    ) : (
+                      <button
+                        className="run-download"
+                        title="重新运行"
+                        aria-label="重新运行"
+                        disabled={busyRun === run.id}
+                        onClick={(e) => { e.stopPropagation(); runAction(run.id, 'rerun') }}
+                      >
+                        <Octicon name="sync" size={14} />
+                      </button>
+                    )}
                     <button
                       className="run-download"
                       title="下载运行日志"

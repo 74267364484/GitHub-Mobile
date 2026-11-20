@@ -2716,3 +2716,19 @@ a.demo-banner-action { text-decoration: none; display: inline-flex; align-items:
   .release-source { padding: 10px 12px 14px; }
   .files-download { margin-left: 0; width: 100%; justify-content: center; }
 }
+
+/* v1.4 · in-app write dialogs */
+.write-form { display: flex; flex-direction: column; gap: 14px; }
+.write-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.settings-save { padding: 12px 16px 16px; }
+.monospace-input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.55; }
+.merge-method { width: auto; min-width: 148px; }
+@media (max-width: 640px) {
+  .write-form-row { grid-template-columns: 1fr; }
+  .dialog { width: calc(100vw - 20px) !important; }
+  .dialog-content { max-height: 62vh; }
+  .merge-box-actions { flex-wrap: wrap; }
+  .merge-method { width: 100%; }
+  .blob-meta-right { flex-wrap: wrap; gap: 6px; }
+}

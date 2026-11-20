@@ -4,16 +4,18 @@ import { useRoute } from '../lib/router'
 import { Octicon } from './Octicon'
 import { Avatar } from './Avatar'
 import { SearchBox } from './SearchBox'
+import { NewRepoDialog } from './WriteDialogs'
 import { Dropdown } from './ui'
 import { navigate } from '../lib/router'
 
 export function Header() {
   const {
     user, config, unreadCount, clearToken, setDrawerOpen, theme, setTheme,
-    source, exitDemo,
+    source, exitDemo, showToast, reload,
   } = useApp()
   const route = useRoute()
   const [mobileSearch, setMobileSearch] = useState(false)
+  const [newRepoOpen, setNewRepoOpen] = useState(false)
   const isDemo = source === 'demo'
 
   const active = (kind: string) => route.kind === kind
@@ -70,9 +72,20 @@ export function Header() {
             {(close) => (
               <>
                 <div className="dropdown-header">新建</div>
-                <a className="dropdown-item" href="https://github.com/new" target="_blank" rel="noreferrer" onClick={close}>
+                <button
+                  className="dropdown-item"
+                  onClick={() => {
+                    close()
+                    if (!config?.hasToken) {
+                      showToast('登录 GitHub 后才能新建仓库', 'info')
+                      navigate('/settings')
+                      return
+                    }
+                    setNewRepoOpen(true)
+                  }}
+                >
                   <Octicon name="repo" size={16} /> 新建仓库
-                </a>
+                </button>
                 <a className="dropdown-item" href="https://gist.github.com/" target="_blank" rel="noreferrer" onClick={close}>
                   <Octicon name="code" size={16} /> 新建 Gist
                 </a>
@@ -163,12 +176,24 @@ export function Header() {
                     <Octicon name="sign-out" size={16} /> 退出登录
                   </button>
                 )}
-                <div className="dropdown-version">GitHub Mobile v1.3.0</div>
+                <div className="dropdown-version">GitHub Mobile v1.4.0</div>
               </>
             )}
           </Dropdown>
         </div>
       </header>
+
+      {newRepoOpen && (
+        <NewRepoDialog
+          onClose={() => setNewRepoOpen(false)}
+          onCreated={(repo) => {
+            setNewRepoOpen(false)
+            reload()
+            showToast(`仓库 ${repo.full_name} 已创建`, 'success')
+            navigate(`/${repo.owner.login}/${repo.name}`)
+          }}
+        />
+      )}
 
       {mobileSearch && (
         <div className="mobile-search-overlay">
