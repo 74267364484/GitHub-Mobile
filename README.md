@@ -195,7 +195,8 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 - `:app:testDebugUnitTest`：7 个 JVM 测试全部通过（Host 映射解析、禁用回退、官方直连、自定义合法/非法 IP、状态 JSON 解析与损坏回退）。
 - `:app:assembleDebug`：`versionCode 4`、`versionName 1.3.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
 - 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
-- 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；安装与启动页渲染已验证，联网下载以浏览器端与真机为准。
+- 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
+- 模拟器点击「下载 ZIP」会弹出系统文件选择器（默认 Downloads、文件名 `awesome-main.zip`，可改目录与文件名）；按返回取消后，下载托盘项自动移除。沙箱模拟器无外网，实际写入以真机为准。
 
 ## 已知限制
 
