@@ -187,7 +187,7 @@ export function Header() {
                     <Octicon name="sign-out" size={16} /> 退出登录
                   </button>
                 )}
-                <div className="dropdown-version">GitHub Mobile v1.6.1</div>
+                <div className="dropdown-version">GitHub Mobile v1.6.2</div>
               </>
             )}
           </Dropdown>

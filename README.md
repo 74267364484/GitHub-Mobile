@@ -4,7 +4,7 @@
 
 > 本项目为独立第三方客户端，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 为其商标，项目名称仅用于说明兼容目标，不代表官方应用。
 
-![Android](https://img.shields.io/badge/Android-8.0%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![License](https://img.shields.io/badge/License-MIT-0969DA) ![APK](https://img.shields.io/badge/APK-1.6.1-black)
+![Android](https://img.shields.io/badge/Android-8.0%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![License](https://img.shields.io/badge/License-MIT-0969DA) ![APK](https://img.shields.io/badge/APK-1.6.2-black)
 
 ## 功能亮点
 
@@ -30,10 +30,10 @@
 
 ## 下载与安装
 
-- 安装包：前往本仓库 [Releases](https://github.com/74267364484/GitHub-Mobile/releases) 下载 `GitHubMobile-1.6.1.apk`
+- 安装包：前往本仓库 [Releases](https://github.com/74267364484/GitHub-Mobile/releases) 下载 `GitHubMobile-1.6.2.apk`
 - 系统要求：Android 8.0（API 26）及以上
-- 大小：4,013,018 字节（约 3.8 MB）
-- SHA-256：`dab458c82caf752d13ed38c30586dbce4e6bf9ea00d20e2cadf4ac91f7419d94`
+- 大小：4,015,373 字节（约 3.8 MB）
+- SHA-256：`944895845c0d88128da1313eb1ff11640dc2d6df3ca223f57d937d89e2a843f9`
 - 安装包使用 debug 签名，允许「安装未知来源应用」后即可侧载；升级安装会保留已有登录状态与下载目录设置。
 
 ## 使用方式
@@ -162,7 +162,7 @@ OCTODECK_ALLOW_SERVER_TOKEN=1 node server/index.mjs
 
 ```bash
 ./scripts/build-apk.sh
-# 产物：GitHubMobile-1.6.1.apk（debug 签名，可直接安装）
+# 产物：GitHubMobile-1.6.2.apk（debug 签名，可直接安装）
 ```
 
 JDK / SDK 不在默认路径时：
@@ -190,6 +190,7 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 - **高级仓库设置**：访问控制、Webhooks、Pages 等仍通过应用内 GitHub 网页视图完成。
 - **Actions 日志**：超过 GitHub 保留期限后接口返回 404，下载托盘会显示具体原因。
 - **Host IP**：GitHub 边缘节点会变化，连接失败时测速或切回官方直连。
+- **厂商省电策略**：部分系统会清理后台进程。如遇下载中断，请在系统设置中允许 GitHub Mobile 后台运行并关闭电池优化。
 - 暂无 iOS 与桌面客户端；Web 前端可独立部署。
 
 ## 参与贡献

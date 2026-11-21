@@ -131,7 +131,7 @@ class GitHubWebActivity : ComponentActivity() {
             displayZoomControls = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " GitHub Mobile/1.6.1 Android"
+            userAgentString = userAgentString + " GitHub Mobile/1.6.2 Android"
         }
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 

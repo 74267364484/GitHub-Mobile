@@ -197,7 +197,7 @@ function Shell() {
             </ErrorBoundary>
           </div>
           <footer className="app-foot">
-            <span>GitHub Mobile v1.6.1</span>
+            <span>GitHub Mobile v1.6.2</span>
             <span>·</span>
             <a href="#/settings">设置</a>
             <span>·</span>

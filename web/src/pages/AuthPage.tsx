@@ -153,7 +153,7 @@ export function AuthPage() {
         </div>
 
         <div className="auth-foot">
-          <span>GitHub Mobile v1.6.1</span>
+          <span>GitHub Mobile v1.6.2</span>
           <span>·</span>
           <span>与 GitHub, Inc. 无隶属关系</span>
         </div>

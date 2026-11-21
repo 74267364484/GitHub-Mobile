@@ -51,6 +51,7 @@ class OctoBridge(
         allowCoreThreadTimeOut(true)
     }
     private val hostState = AtomicReference(loadHostState())
+    private var webViewUsable = true
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val bodyMethods = setOf("POST", "PUT", "PATCH")
 
@@ -86,7 +87,7 @@ class OctoBridge(
             put("defaultRepo", "")
             put("host", hostState.get().toJson())
             put("native", true)
-            put("version", "1.6.1")
+            put("version", "1.6.2")
             put("proxy", false)
         }.toString()
     }
@@ -189,7 +190,7 @@ class OctoBridge(
                     .url("https://api.github.com$path")
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
-                    .header("User-Agent", "GitHub Mobile/1.6.1 Android")
+                    .header("User-Agent", "GitHub Mobile/1.6.2 Android")
                 val token = secure.get()
                 if (!token.isNullOrBlank()) builder.header("Authorization", "Bearer $token")
                 val reqBody = if (body.isBlank()) null else body.toRequestBody(jsonMedia)
@@ -243,7 +244,7 @@ class OctoBridge(
                 val req = Request.Builder()
                     .url("https://api.github.com/graphql")
                     .header("Authorization", "Bearer $token")
-                    .header("User-Agent", "GitHub Mobile/1.6.1 Android")
+                    .header("User-Agent", "GitHub Mobile/1.6.2 Android")
                     .header("Accept", "application/vnd.github+json")
                     .post(body.toRequestBody(jsonMedia))
                     .build()
@@ -362,7 +363,7 @@ class OctoBridge(
                 }
                 val req = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "GitHub Mobile/1.6.1 Android")
+                    .header("User-Agent", "GitHub Mobile/1.6.2 Android")
                     .header("Accept", "text/plain")
                     .build()
                 client.newCall(req).execute().use { response ->
@@ -436,6 +437,9 @@ class OctoBridge(
     /** MainActivity 注入：没有保存过目录时，弹一次系统目录选择器。 */
     var askDownloadTree: ((String, String, String, String) -> Unit)? = null
 
+    /** MainActivity 注入：下载开始时请求通知权限（Android 13+）。 */
+    var onDownloadRequested: (() -> Unit)? = null
+
     /** MainActivity 注入：设置在设置页更改下载目录。 */
     var askDownloadDir: ((String) -> Unit)? = null
 
@@ -492,20 +496,37 @@ class OctoBridge(
             return
         }
         val name = sanitizeName(filename).ifBlank { "download" }
+        val app = context.applicationContext
         val saved = savedTree()
         if (saved != null) {
+            // The app is foreground here, so the foreground service can start
+            // even on Android 12+ where background starts are rejected.
+            onDownloadRequested?.invoke()
+            DownloadService.acquire(app)
             startDownloadToTree(id, url, name, accept, saved)
             return
         }
         val ask = askDownloadTree
         if (ask != null) {
-            ask(id, url, name, accept)
+            // Start the service before the directory picker opens. The picker
+            // result callback runs while the app is still returning to the
+            // foreground, and starting a foreground service there is rejected.
+            DownloadService.acquire(app)
+            try {
+                ask(id, url, name, accept)
+            } catch (e: Exception) {
+                DownloadService.release(app)
+                downloadError(id, e.message ?: "无法打开文件夹选择器")
+            }
         } else {
+            onDownloadRequested?.invoke()
+            DownloadService.acquire(app)
             startDownloadToDefault(id, url, name, accept)
         }
     }
 
     fun downloadCancelled(id: String) {
+        DownloadService.release(context.applicationContext)
         emitDownload(id, JSONObject().put("state", "cancelled").toString())
     }
 
@@ -518,12 +539,11 @@ class OctoBridge(
     }
 
     /**
-     * Runs the transfer with a foreground keep-alive service so Android does not
-     * freeze the process when the activity is sent to the background.
+     * Runs the transfer. The foreground service has already been acquired by
+     * the caller, so every exit path releases exactly one reference.
      */
     private fun enqueueDownload(id: String, task: () -> Unit) {
         val app = context.applicationContext
-        DownloadService.acquire(app)
         try {
             downloadPool.execute {
                 try {
@@ -543,7 +563,7 @@ class OctoBridge(
             var name = sanitizeName(rawName)
             val builder = Request.Builder()
                 .url(rawUrl)
-                .header("User-Agent", "GitHub Mobile/1.6.1 Android")
+                .header("User-Agent", "GitHub Mobile/1.6.2 Android")
                 .header("Accept", accept.ifBlank { "application/octet-stream" })
                 .header("Accept-Encoding", "identity")
                 .header("X-GitHub-Api-Version", "2022-11-28")
@@ -767,12 +787,17 @@ class OctoBridge(
     }
 
     private fun emitDownload(id: String, payload: String) {
+        if (!webViewUsable) return
         val script = "window.__octoDownloadProgress && window.__octoDownloadProgress(${JSONObject.quote(id)}, ${JSONObject.quote(payload)})"
-        webView.post {
-            try {
-                webView.evaluateJavascript(script, null)
-            } catch (_: Exception) {
+        try {
+            webView.post {
+                if (!webViewUsable) return@post
+                try {
+                    webView.evaluateJavascript(script, null)
+                } catch (_: Exception) {
+                }
             }
+        } catch (_: Exception) {
         }
     }
 
@@ -799,6 +824,9 @@ class OctoBridge(
     }
 
     fun shutdown() {
+        // Stop touching the WebView from download threads: the activity may be
+        // destroyed while a background transfer is still running.
+        webViewUsable = false
         io.shutdownNow()
         testPool.shutdownNow()
         // Let in-flight downloads finish; the foreground service keeps the

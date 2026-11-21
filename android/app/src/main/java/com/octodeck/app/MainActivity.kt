@@ -1,7 +1,9 @@
 package com.octodeck.app
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
@@ -53,6 +55,9 @@ class MainActivity : ComponentActivity() {
     private var pendingDirId: String? = null
     private val pendingLinks = mutableListOf<String>()
     private var webReady = false
+    private var notificationAsked = false
+
+    private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     private data class PendingDownload(val id: String, val url: String, val name: String, val accept: String)
 
@@ -75,6 +80,7 @@ class MainActivity : ComponentActivity() {
         }
         getSharedPreferences("octodeck", MODE_PRIVATE).edit().putString("download_tree", uri.toString()).apply()
         if (pending != null) {
+            ensureNotificationPermission()
             bridge.startDownloadToTree(pending.id, pending.url, pending.name, pending.accept, uri)
         }
         if (dirId != null) {
@@ -134,6 +140,9 @@ class MainActivity : ComponentActivity() {
                     bridge.rejectDownloadDir(id, "无法打开文件夹选择器")
                 }
             }
+        }
+        bridge.onDownloadRequested = {
+            runOnUiThread { ensureNotificationPermission() }
         }
         webView.addJavascriptInterface(bridge, "OctoDeck")
         bridge.onWebReady = {
@@ -259,7 +268,7 @@ class MainActivity : ComponentActivity() {
             javaScriptCanOpenWindowsAutomatically = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " GitHub Mobile/1.6.1 Android"
+            userAgentString = userAgentString + " GitHub Mobile/1.6.2 Android"
         }
 
         val assetLoader = WebViewAssetLoader.Builder()
@@ -377,11 +386,23 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        pendingDownload?.let { bridge.downloadCancelled(it.id) }
+        pendingDownload = null
         webView.removeJavascriptInterface("OctoDeck")
         bridge.shutdown()
         webView.loadUrl("about:blank")
         webView.destroy()
         super.onDestroy()
+    }
+
+    private fun ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || notificationAsked) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        notificationAsked = true
+        try {
+            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } catch (_: Exception) {
+        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
