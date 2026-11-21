@@ -29,6 +29,7 @@ import java.net.InetAddress
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -45,7 +46,10 @@ class OctoBridge(
     private val secure = SecurePrefs(context)
     private val io = Executors.newFixedThreadPool(4)
     private val testPool = Executors.newFixedThreadPool(8)
-    private val downloadPool = Executors.newFixedThreadPool(2)
+    private val downloadPool = (Executors.newFixedThreadPool(2) as ThreadPoolExecutor).apply {
+        setKeepAliveTime(30, TimeUnit.SECONDS)
+        allowCoreThreadTimeOut(true)
+    }
     private val hostState = AtomicReference(loadHostState())
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
     private val bodyMethods = setOf("POST", "PUT", "PATCH")
@@ -82,7 +86,7 @@ class OctoBridge(
             put("defaultRepo", "")
             put("host", hostState.get().toJson())
             put("native", true)
-            put("version", "1.6.0")
+            put("version", "1.6.1")
             put("proxy", false)
         }.toString()
     }
@@ -185,7 +189,7 @@ class OctoBridge(
                     .url("https://api.github.com$path")
                     .header("Accept", "application/vnd.github+json")
                     .header("X-GitHub-Api-Version", "2022-11-28")
-                    .header("User-Agent", "GitHub Mobile/1.5 Android")
+                    .header("User-Agent", "GitHub Mobile/1.6.1 Android")
                 val token = secure.get()
                 if (!token.isNullOrBlank()) builder.header("Authorization", "Bearer $token")
                 val reqBody = if (body.isBlank()) null else body.toRequestBody(jsonMedia)
@@ -239,7 +243,7 @@ class OctoBridge(
                 val req = Request.Builder()
                     .url("https://api.github.com/graphql")
                     .header("Authorization", "Bearer $token")
-                    .header("User-Agent", "GitHub Mobile/1.5 Android")
+                    .header("User-Agent", "GitHub Mobile/1.6.1 Android")
                     .header("Accept", "application/vnd.github+json")
                     .post(body.toRequestBody(jsonMedia))
                     .build()
@@ -358,7 +362,7 @@ class OctoBridge(
                 }
                 val req = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "GitHub Mobile/1.5 Android")
+                    .header("User-Agent", "GitHub Mobile/1.6.1 Android")
                     .header("Accept", "text/plain")
                     .build()
                 client.newCall(req).execute().use { response ->
@@ -506,11 +510,32 @@ class OctoBridge(
     }
 
     fun startDownloadToDefault(id: String, url: String, filename: String, accept: String) {
-        downloadPool.execute { runDownload(id, url, filename, accept, null) }
+        enqueueDownload(id) { runDownload(id, url, filename, accept, null) }
     }
 
     fun startDownloadToTree(id: String, url: String, filename: String, accept: String, tree: Uri) {
-        downloadPool.execute { runDownload(id, url, filename, accept, tree) }
+        enqueueDownload(id) { runDownload(id, url, filename, accept, tree) }
+    }
+
+    /**
+     * Runs the transfer with a foreground keep-alive service so Android does not
+     * freeze the process when the activity is sent to the background.
+     */
+    private fun enqueueDownload(id: String, task: () -> Unit) {
+        val app = context.applicationContext
+        DownloadService.acquire(app)
+        try {
+            downloadPool.execute {
+                try {
+                    task()
+                } finally {
+                    DownloadService.release(app)
+                }
+            }
+        } catch (e: Exception) {
+            DownloadService.release(app)
+            downloadError(id, e.message ?: "无法启动下载")
+        }
     }
 
     private fun runDownload(id: String, rawUrl: String, rawName: String, accept: String, tree: Uri?) {
@@ -518,7 +543,7 @@ class OctoBridge(
             var name = sanitizeName(rawName)
             val builder = Request.Builder()
                 .url(rawUrl)
-                .header("User-Agent", "GitHub Mobile/1.5 Android")
+                .header("User-Agent", "GitHub Mobile/1.6.1 Android")
                 .header("Accept", accept.ifBlank { "application/octet-stream" })
                 .header("Accept-Encoding", "identity")
                 .header("X-GitHub-Api-Version", "2022-11-28")
@@ -776,7 +801,9 @@ class OctoBridge(
     fun shutdown() {
         io.shutdownNow()
         testPool.shutdownNow()
-        downloadPool.shutdownNow()
+        // Let in-flight downloads finish; the foreground service keeps the
+        // process alive until the last transfer releases it.
+        downloadPool.shutdown()
         client.connectionPool.evictAll()
     }
 

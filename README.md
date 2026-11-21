@@ -4,7 +4,7 @@
 >
 > 独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是其商标；本项目的名称仅用于说明兼容目标，不代表官方应用。
 
-![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.6.0-black)
+![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.6.1-black)
 
 ## 截图
 
@@ -20,11 +20,17 @@
 
 ## 下载
 
-- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.6.0.apk`
-- 大小：4,251,852 字节（约 4.1 MB），debug 签名，可直接侧载
-- SHA-256：`a76715e2a165cc686dc588eb753327da58480fb4fe78caa243a5ddfec2619af6`
+- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.6.1.apk`
+- 大小：4,013,018 字节（约 3.8 MB），debug 签名，可直接侧载
+- SHA-256：`dab458c82caf752d13ed38c30586dbce4e6bf9ea00d20e2cadf4ac91f7419d94`
 
 ---
+
+## v1.6.1 更新
+
+- **后台下载不再中断**：开始下载时启动 `dataSync` 前台服务并持有 Partial WakeLock，按 Home 或锁屏后 OkHttp 传输继续，通知栏显示「正在下载，离开应用也会继续」。
+- **Activity 销毁不再打断下载**：`OctoBridge.shutdown()` 改为优雅关闭下载线程池，已在传输中的文件会继续写完；全部完成后自动停止前台服务。
+- **下载线程池空闲回收**：核心线程 30 秒空闲后自动退出，不在无下载时长期占用进程。
 
 ## v1.6.0 更新
 
@@ -212,7 +218,7 @@ cd web && npm run dev                # http://127.0.0.1:5173
 
 ```bash
 ./scripts/build-apk.sh
-# 产物：GitHubMobile-1.6.0.apk（debug 签名，可直接侧载）
+# 产物：GitHubMobile-1.6.1.apk（debug 签名，可直接侧载）
 ```
 
 如果 JDK / SDK 不在默认路径：
@@ -255,7 +261,7 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 ### Android
 
 - `:app:testDebugUnitTest`：7 个 JVM 测试全部通过（Host 映射解析、禁用回退、官方直连、自定义合法/非法 IP、状态 JSON 解析与损坏回退）。
-- `:app:assembleDebug`：`versionCode 7`、`versionName 1.6.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
+- `:app:assembleDebug`：`versionCode 8`、`versionName 1.6.1`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
 - 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
 - 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
 - Wiki 在 APK 中通过原生桥读取 `raw.githubusercontent.com/wiki/`，不依赖本地 Node 服务。
