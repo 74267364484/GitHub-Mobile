@@ -1,134 +1,61 @@
-# GitHub Mobile · 非官方客户端
+# GitHub Mobile
 
-> 按 GitHub 网页视觉与信息架构重写的 Android 客户端。无需登录即可进入浏览公开内容，登录后访问私有仓库与个人数据；中文界面、真实 GitHub API，左侧导航置顶内置 **Host 映射**（默认开启）。
->
-> 独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是其商标；本项目的名称仅用于说明兼容目标，不代表官方应用。
+**一款按 GitHub 网页的视觉与信息架构重写的 Android 客户端。** 公开内容无需登录即可浏览；登录后可查看私有仓库、处理通知、管理议题与 PR、运行 Actions、发布 Release。中文界面，直接调用真实 GitHub API，内置 Host 映射以改善网络连通性。
 
-![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.6.1-black)
+> 本项目为独立第三方客户端，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 为其商标，项目名称仅用于说明兼容目标，不代表官方应用。
+
+![Android](https://img.shields.io/badge/Android-8.0%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![License](https://img.shields.io/badge/License-MIT-0969DA) ![APK](https://img.shields.io/badge/APK-1.6.1-black)
+
+## 功能亮点
+
+- **无需登录即可浏览**：启动直接进入公开内容，仓库、代码、Issues、Pull Requests、Actions、Releases、用户主页、搜索全部可用。
+- **完整的仓库操作**（登录后）：新建仓库，创建、编辑、上传、删除文件，新建议题与 PR，合并 PR，发布 Release，修改仓库设置、可见性与归档状态。
+- **Actions 全流程**：从模板新建工作流、查看运行详情与每一步状态、重新运行、取消运行、下载日志。
+- **Releases 优先展示**：下载区置于发行说明之前，资源与源码包一键下载，下载位置可记忆、随时更换。
+- **Insights、Community、Wiki、Discussions、Projects、Security**：常用仓库子页面均在应用内呈现，自动补齐 README、LICENSE、贡献指南等社区标准文件。
+- **GitHub 深链接管**：在其他应用中打开 `github.com` / `gist.github.com` 链接可直接进入对应页面，也可从浏览器通过分享发送到本应用。
+- **第三方 OAuth 授权**：为其他平台绑定 GitHub 账号时，授权页在应用内打开，回调结果可复制或交回原应用，不保存任何 `client_secret`。
+- **真实下载**：源码 ZIP/TAR.GZ、单个文件、Release 附件、PR diff/patch、Actions 日志均通过 GitHub API 实际传输。
+- **后台下载不中断**：开始下载后可切到其他应用或锁屏，传输继续进行并在通知栏显示状态。
 
 ## 截图
 
-| Actions · 模板与运行（应用内） | 深链与第三方授权 |
+| Actions · 模板与运行 | 深链与第三方授权 |
 |---|---|
 | ![](docs/screenshots/v16-actions.png) | ![](docs/screenshots/v16-oauth.png) |
-| **Gist（应用内创建/查看）** | **设置 · 链接与授权** |
+| **Gist · 应用内创建与查看** | **设置 · 链接与授权** |
 | ![](docs/screenshots/v16-gists.png) | ![](docs/screenshots/v16-links.png) |
-| **Releases · 下载区置顶、说明可折叠** | **Actions 运行详情（作业/步骤）** |
+| **Releases · 下载区置顶** | **Actions 运行详情** |
 | ![](docs/screenshots/v15-releases.png) | ![](docs/screenshots/v15-run-detail.png) |
 
----
+## 下载与安装
 
-## 下载
-
-- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.6.1.apk`
-- 大小：4,013,018 字节（约 3.8 MB），debug 签名，可直接侧载
+- 安装包：前往本仓库 [Releases](https://github.com/74267364484/GitHub-Mobile/releases) 下载 `GitHubMobile-1.6.1.apk`
+- 系统要求：Android 8.0（API 26）及以上
+- 大小：4,013,018 字节（约 3.8 MB）
 - SHA-256：`dab458c82caf752d13ed38c30586dbce4e6bf9ea00d20e2cadf4ac91f7419d94`
+- 安装包使用 debug 签名，允许「安装未知来源应用」后即可侧载；升级安装会保留已有登录状态与下载目录设置。
 
----
+## 使用方式
 
-## v1.6.1 更新
+1. 首次启动直接进入「公开浏览」，无需账号即可查看公开仓库与搜索。
+2. 需要访问私有仓库、通知、个人主页或执行写操作时，进入「设置 → GitHub 连接」登录。
+3. 登录使用 GitHub Personal Access Token，不接触账号密码。Token 保存在 Android Keystore（AES-256-GCM）中，退出登录即清除。
+4. 建议为 Token 勾选以下权限：
 
-- **后台下载不再中断**：开始下载时启动 `dataSync` 前台服务并持有 Partial WakeLock，按 Home 或锁屏后 OkHttp 传输继续，通知栏显示「正在下载，离开应用也会继续」。
-- **Activity 销毁不再打断下载**：`OctoBridge.shutdown()` 改为优雅关闭下载线程池，已在传输中的文件会继续写完；全部完成后自动停止前台服务。
-- **下载线程池空闲回收**：核心线程 30 秒空闲后自动退出，不在无下载时长期占用进程。
-- Android 13+ 如果关闭了通知权限，前台服务仍会继续运行，但「正在下载」通知可能不显示。
+| 权限 | 用途 |
+|---|---|
+| `repo` | 私有仓库读写、议题、PR、Release |
+| `read:user` | 个人资料与贡献数据 |
+| `workflow` | 读取与操作 Actions |
+| `notifications` | 通知列表与已读状态 |
+| `gist` | 创建与管理 Gist |
 
-## v1.6.0 更新
+GitHub 匿名 API 限流约为 60 次/小时/IP；达到上限时应用会提示登录后继续，不会白屏。私有仓库必须登录，这是 GitHub 服务端的权限规则。
 
-- **工作流彻底应用内**：Actions 页移除全部 GitHub 外链；顶部改为「刷新 / 新建工作流」，模板卡片直接打开 `.github/workflows/` 文件编辑器，提交后即可运行；运行详情保留重跑、取消、下载日志，并新增「复制运行链接」。
-- **洞察彻底应用内**：社区标准检查项的「添加」直接创建 README、LICENSE（MIT）、CONTRIBUTING、CODE_OF_CONDUCT、Issue/PR 模板与 SECURITY.md；「描述」跳转应用内仓库设置，不再打开 `github.com/{owner}/{repo}/community`。
-- **GitHub 深链接管**：
-  - 注册 `https://github.com/*`、`https://gist.github.com/*`、`githubmobile://*` 与文本分享（`ACTION_SEND`）。
-  - 从其他应用打开 GitHub 链接会直接进入对应仓库 / 议题 / PR / Actions / Releases / 用户 / 搜索 / Gist 页面。
-  - 浏览器地址栏直接输入网址无法被第三方应用拦截，这是 Android 系统限制；可将 GitHub 链接分享到 GitHub Mobile，或在系统设置中把 GitHub 链接的默认打开方式设为 GitHub Mobile。
-- **第三方账号绑定在应用内完成**：
-  - 收到 `github.com/login/oauth/authorize` 时，先显示权限确认对话框（client_id、scope、回调地址、state），确认后在内置网页视图打开 GitHub 授权页。
-  - 授权完成回到 `githubmobile://oauth/callback` 时，应用内展示 code 与 state，可一键复制；不会保存任何 `client_secret`。
-  - 对方使用自定义 scheme 回调时，会询问是否把授权结果交回原应用。
-- **应用内 GitHub 网页视图**：Token 管理、登录、Marketplace 等没有原生页面的 GitHub 页面也在应用内网页视图打开，不再跳出应用；视图不暴露 JS 桥接，只允许 GitHub 域名。
-- **所有 GitHub 链接应用内路由**：README、Issue/PR 正文、搜索结果里的 `github.com` 链接会转换为应用内路由，不再打开系统浏览器；仓库主页、博客等非 GitHub 外链仍交给浏览器。
-- **补齐常用功能**：
-  - Gist：列表、详情、创建（公开/私密），`gist.github.com` 深链直达；
-  - 议题/PR：标签、负责人、里程碑在应用内编辑；
-  - 提交：文件历史、提交详情（变更文件与增删行数）在应用内查看；
-  - 个人主页：编辑资料、关注/取消关注、关注者/正在关注列表；
-  - 通知：全部标为已读、点击即标记已读；
-  - 仓库：星标/关注用户列表、内建议题（报告仓库）。
+## Host 映射
 
-## v1.5.0 更新
-
-- **Releases 下载不再难找**：资源与源码下载区移到发行说明之前，发行说明默认折叠；点击蓝色标签会在页内跳到下载区，不再打开 GitHub 网页。
-- **Actions 不再跳网页**：点击运行记录打开应用内详情，展示作业与每一步状态；可直接重新运行、取消运行、下载日志。
-- **项目 / Wiki / 讨论 / 安全 / 洞察全部应用内**：
-  - 项目：GraphQL 读取 Projects v2，支持在应用内新建项目；
-  - Wiki：读取并渲染 Wiki 首页（`Home.md`）；
-  - 讨论：GraphQL 列出讨论、页内展开正文、在应用内发起讨论；
-  - 安全：读取 Dependabot 与代码扫描警报、检测 SECURITY.md；
-  - 洞察：流量、代码频率、提交网络、分叉均在应用内展示，卡片内不再有外链。
-- **下载路径记住并可更换**：Android 首次下载弹出一次文件夹选择器，之后一直保存到该文件夹；可在下载托盘或「设置 → 数据与缓存」里随时更改。
-- **文件名修复**：下载优先使用 `Content-Disposition` 中的真实文件名；缺少扩展名时按 Content-Type 补 `.zip` / `.apk` / `.tar.gz`，避免出现 `.bin`。
-
-## v1.4.0 更新
-
-- **Releases 前置**：仓库导航改为「代码 / Releases / 议题 / 拉取请求 / Actions / …」，英文名与 GitHub 网页一致，第二个位置直接可见。
-- **写操作搬到应用内**（登录后）：
-  - 新建仓库；创建、编辑、删除、上传仓库文件；提交信息可自定义。
-  - 新建议题、编辑标题与描述、关闭/重新打开、评论。
-  - 新建拉取请求、编辑、关闭/重新打开、在应用内合并（支持合并提交 / 压缩 / 变基）。
-  - 起草并发布 Release；分叉仓库后自动跳到你的 fork。
-  - 仓库设置：名称、描述、网站、话题、功能开关、默认分支、可见性、归档、删除（需输入完整仓库名确认）。
-  - Actions：重新运行、取消运行、下载日志。
-- **减少外跳**：上述主流程不再跳转 github.com；仅 Projects / Wiki / Discussions、访问控制、Webhooks、Gist、仓库转移等高级功能保留外链，并在文案中明确标注。
-- **手机端对话框**：新建仓库、议题、PR、Release、文件编辑均使用自适应宽度的对话框，字段单列排布，避免横向溢出。
-
-## v1.3.0 更新
-
-- **不再强制登录**：没有 Token 也能直接进入。首次启动自动加载中性公开数据（`sindresorhus/awesome`、`microsoft/vscode`），顶部明确显示「公开浏览」；搜索与仓库页会匿名读取 GitHub 公共 API。只有访问私有仓库、通知、个人数据时才需要登录。
-- **软件名改为 GitHub Mobile**：启动页、系统应用名、页面标题、页脚与关于页统一；保留「非官方客户端」声明。仓库名现为 `GitHub-Mobile`。
-- **发行版入口**：仓库二级导航新增「发行版」标签，手机端一眼可见；发行版页支持资源下载、源码 ZIP / TAR.GZ，并补上加载失败与限流提示。
-- **下拉菜单适配**：菜单会自动限制在视口内，手机端点击「代码」不再被裁切；克隆地址行在窄屏自动换行，下载 ZIP / TAR.GZ 完整可见。
-- **下载位置自选**：Android 端每次下载都会弹出系统文件选择器（SAF），由你决定保存目录与文件名；取消选择则不会创建文件。Web 端由浏览器下载设置决定保存位置。
-
-## 它是什么
-
-GitHub Mobile 不是 GitHub 的封装壳，而是一套按 GitHub 视觉与信息架构重写的 React 前端，加上 Android WebView 原生壳：
-
-- **开箱即用**：无 Token 直接进入公开浏览，使用中性公开数据作为首页；不会显示开发者账号，也不会自动使用服务端令牌。
-- **按需登录**：在「设置 → GitHub 连接」粘贴 Personal Access Token 后，可查看私有仓库、通知、贡献日历并执行写操作。Android 版用 Android Keystore / AES-256-GCM 加密保存，Web 版保存在 localStorage，下次启动自动恢复。
-- **中文界面**：导航、按钮、空状态、提示、相对时间、日期与错误信息均为中文；仓库名、Issue 标题、README 等 GitHub 内容保持原样。
-- **与 GitHub 网页同构的布局**：64px 顶栏、仓库二级导航、代码文件表、README、About 侧栏、Issues / PR / Actions / Releases / Insights / Settings、个人主页贡献日历、通知、Explore、搜索。
-- **左侧导航置顶 Host 映射**：开关默认开启；内置官方直连、新加坡、日本、迪拜、弗吉尼亚、西雅图与自定义 Hosts。可查看每条线路的域名 → IP 明细，真实 TLS 测速，智能选择最快线路，复制 hosts 片段。
-- **Android 原生 DNS 覆盖**：原生版用 OkHttp 自定义 `Dns`，把 `github.com`、`api.github.com`、`raw.githubusercontent.com`、`github.githubassets.com`、`codeload.github.com` 解析到所选 IP；TLS 仍使用真实域名做 SNI/证书校验。API、README 图片、头像、下载全部生效。
-- **动效与交互**：路由淡入过渡、顶部请求进度条、按钮按压反馈、悬停过渡、骨架屏、Toast、Host 弹窗、移动端抽屉、下载进度动画、减少动态效果偏好支持、错误边界、图片内存缓存。
-- **响应式**：桌面 1280px 与手机 390px 均验证；无横向溢出；移动端左侧栏变为抽屉，下载托盘自动变为底部通栏。
-
-## 公开浏览与匿名 API
-
-- 未登录时，App 先加载内置的公开数据，保证首页、贡献日历、README、Issues、PR、Actions 等界面立即可用。
-- 打开内置数据之外的仓库或搜索时，会自动回退到 GitHub 匿名 API；未登录请求不携带任何 Token。
-- GitHub 匿名 API 限额较低（约 60 次/小时/IP）。达到限额时，页面会提示「登录 GitHub 后继续」，不会卡死或白屏。
-- 私有仓库必须登录，这是 GitHub 服务端的权限规则，客户端无法绕过。
-
-## 真实下载
-
-| 内容 | 入口 | API |
-|---|---|---|
-| 仓库源码 ZIP | 仓库代码页「代码」菜单 | `GET /repos/{owner}/{repo}/zipball/{ref}` |
-| 仓库源码 TAR.GZ | 仓库代码页「代码」菜单 | `GET /repos/{owner}/{repo}/tarball/{ref}` |
-| 单个文件（含二进制） | 文件页「下载文件」 | `GET /repos/{owner}/{repo}/contents/{path}?ref=` + raw Accept |
-| Release 附件 | 发行版每个资源「下载」 | `GET /repos/{owner}/{repo}/releases/assets/{id}` |
-| 发行版源码 | 发行版「源码 ZIP / TAR.GZ」 | zipball / tarball，`ref` 为 tag |
-| PR 补丁 | PR 操作菜单 / 文件变更页 | `Accept: application/vnd.github.v3.diff` / `.patch` |
-| Actions 运行日志 | 每条运行记录右侧下载按钮 | `GET /repos/{owner}/{repo}/actions/runs/{id}/logs` |
-
-- **Web 端**：浏览器请求本地 Node 服务 `/api/download`，服务端按当前 Host 映射连接 GitHub，跟随最多 6 次重定向，流式回传并设置 `Content-Disposition`；前端边接收边显示进度，完成后交给浏览器保存（保存位置由浏览器设置决定）。
-- **Android 端**：首次下载弹出系统文件夹选择器（`ACTION_OPEN_DOCUMENT_TREE`），授权会持久保存；之后的下载直接写入该文件夹，不再询问。可在下载托盘或设置页随时更换文件夹。OkHttp 使用自定义 DNS、自动携带 Keystore 中的 Token，跟随 GitHub → codeload → objects.githubusercontent.com 等重定向。
-- 下载文件名优先使用 `Content-Disposition` 的真实文件名；没有扩展名时按 Content-Type 补齐，避免 `.bin`。
-- 下载域名白名单、文件名清洗、重定向域名校验均已实现；私有仓库下载同样可用。
-
-## Host 映射线路
-
-默认开启，默认线路为 **亚太 · 新加坡**。IP 均为 GitHub 公开边缘节点，构建时逐条做过 TLS 证书校验。
+左侧导航顶部内置 Host 映射，默认开启，默认线路为**亚太 · 新加坡**。映射只影响本应用自身的请求，不修改系统 hosts，也不需要 Root；可一键复制 `/etc/hosts` 片段供桌面端使用。
 
 | 线路 | github.com | api.github.com | 说明 |
 |---|---|---|---|
@@ -140,156 +67,139 @@ GitHub Mobile 不是 GitHub 的封装壳，而是一套按 GitHub 视觉与信�
 | 北美 · 西雅图 | 140.82.116.3 | 140.82.116.6 | 西海岸 |
 | 自定义 Hosts | 手填 IPv4 | 手填 IPv4 | 留空走系统 DNS |
 
-另外统一覆盖 `raw.githubusercontent.com`（185.199.108–111.133）、`github.githubassets.com`（185.199.108–111.154）、`codeload.github.com`（140.82.112.9）。
+同时统一覆盖 `raw.githubusercontent.com`（185.199.108–111.133）、`github.githubassets.com`（185.199.108–111.154）、`codeload.github.com`（140.82.112.9）。
 
-- **Android 原生版**：直接对设备网络生效，测速也是设备 → 边缘 IP 的真实握手。
-- **浏览器预览版**：由本地 Node 服务代理请求；`测速` 会经出口代理 CONNECT 到所选 IP 并完成 TLS 校验。
-- 映射只影响本应用自身请求，**不修改系统 hosts，不需要 Root**。
-- 可一键复制 `/etc/hosts` 片段给桌面使用。
+Android 版通过 OkHttp 自定义 DNS 把上述域名解析到所选 IP，TLS 仍以真实域名做 SNI 与证书校验；内置测速为设备到边缘节点的真实 TLS 握手。GitHub 的 IP 会随调度变化，连接异常时测速或切回官方直连即可。
 
-## 页面
+## 下载行为
 
-| 页面 | 状态 |
+| 内容 | 入口 |
 |---|---|
-| 公开浏览 | 无需登录，内置公开数据 + 匿名 GitHub API |
-| 登录 / 登录态恢复 | 按需在设置中登录，Keystore/localStorage 持久化，失效自动回公开浏览 |
-| Home / 活动流 / 贡献日历 | 公开数据或实时 API |
-| 仓库代码 / 分支 / 目录 / 文件 / README | 完整，含语法高亮、文件下载、源码打包下载 |
-| Releases | 导航第二位，应用内发布、资源与源码下载 |
-| Issues 列表 / 详情 / 时间线 / 评论 | 列表筛选/搜索；评论可发布（需 Token） |
-| Pull requests 列表 / 会话 / Commits / Files changed | 真实 diff、行号、增删配色；Diff/Patch 下载 |
-| Actions | workflow 列表、运行详情（作业/步骤）、重跑/取消/日志下载 |
+| 仓库源码 ZIP / TAR.GZ | 代码页「代码」菜单 |
+| 单个文件（含二进制） | 文件页「下载文件」 |
+| Release 附件 | 发行版资源列表 |
+| 发行版源码包 | 发行版「源码 ZIP / TAR.GZ」 |
+| PR 补丁 | PR 操作菜单 / 文件变更页 |
+| Actions 运行日志 | 每条运行记录右侧下载按钮 |
+
+- 首次下载时通过系统文件夹选择器指定保存目录，授权会被持久保存；之后直接写入该目录，可在下载托盘或设置中随时更换。
+- 文件名优先取自 `Content-Disposition`，缺失扩展名时按 Content-Type 补齐。
+- 下载过程显示实时进度；离开应用或锁屏后继续传输，通知栏可见状态（Android 13+ 需授予通知权限才能看到通知）。
+- 下载域名白名单、文件名清洗与重定向校验均已启用，私有仓库文件同样支持。
+
+## 支持的页面
+
+| 页面 | 说明 |
+|---|---|
+| 公开浏览 | 无需登录，内置公开示例数据 + 匿名 GitHub API |
+| 登录与登录态恢复 | 按需登录，Keystore 持久化，失效自动回到公开浏览 |
+| 首页 / 活动流 / 贡献日历 | 公开数据或实时 API |
+| 仓库代码 / 分支 / 目录 / 文件 / README | 语法高亮、文件下载、源码打包 |
+| Releases | 应用内发布、编辑、资源与源码下载 |
+| Issues | 列表筛选与搜索、详情、时间线、评论、标签、负责人、里程碑 |
+| Pull Requests | 会话、Commits、Files changed、真实 diff、合并/关闭、Diff/Patch 下载 |
+| Actions | 工作流列表、运行详情、重跑/取消、日志下载 |
 | Projects | GraphQL 读取 Projects v2，应用内新建 |
 | Wiki | 读取并渲染 Wiki 首页 |
 | Discussions | 列表、页内展开、应用内发起讨论 |
-| Security | Dependabot / 代码扫描警报、SECURITY.md 检测 |
-| Insights | Community 检查清单、语言、贡献者、提交 |
-| Settings | 只读仓库设置预览 + 危险区跳 GitHub |
-| Profile | 贡献日历、活动、热门仓库、Repositories / Stars |
-| Notifications / Explore / Search | 真实 API，空状态与搜索分页 |
-| App Settings | 登录、Host 映射、主题、数据缓存、关于 |
+| Security | Dependabot 与代码扫描警报、SECURITY.md 检测 |
+| Insights | Community 检查清单、语言、贡献者、提交活动 |
+| Settings | 仓库设置应用内编辑：名称、描述、话题、功能开关、可见性、归档、删除 |
+| Profile | 贡献日历、活动、热门仓库、Repositories / Stars、关注列表 |
+| Notifications / Explore / Search | 真实 API，支持分页与空状态 |
+| Gist | 列表、详情、创建公开或私密 Gist |
+| App Settings | 登录、Host 映射、主题、缓存、链接与授权 |
 
-## 目录
+仓库的高级管理项（访问控制、Webhooks、Pages、仓库转移等）通过应用内 GitHub 网页视图打开，不会跳出应用。该视图仅允许 GitHub 域名，且不暴露 JS 桥接。
+
+## 项目结构
 
 ```
 GitHub-Mobile/
-├── web/                 React 18 + TypeScript + Vite
+├── web/                 React 18 + TypeScript + Vite 前端
 │   ├── src/components/  Header / LeftRail / HostCard / DownloadTray / Markdown / DiffView ...
-│   ├── src/pages/       首页、仓库、发行版、Issues、PR、Actions、Profile、Settings ...
+│   ├── src/pages/       首页、仓库、Releases、Issues、PR、Actions、Profile、Settings ...
 │   ├── src/lib/         API 桥、Host 配置、下载中心、公开浏览回退、路由、高亮
-│   ├── src/data/        hosts.json（同时复制给 Android）
+│   ├── src/data/        hosts.json（构建时同步给 Android）
 │   └── public/          demo.json、favicon、应用图标
 ├── server/              Node API 代理、Host 测速、图片代理、流式下载、静态服务
-├── android/             Kotlin WebView 壳 + OkHttp DNS + Keystore + SAF 下载
+├── android/             Kotlin WebView 壳 + OkHttp 自定义 DNS + Keystore + SAF 下载
 │   └── app/src/main/java/com/octodeck/app/
-├── scripts/             fetch-demo.mjs / build-apk.sh / qa-v11.cjs
-└── docs/screenshots/    桌面与移动端验证截图
+├── scripts/             获取演示数据、构建 APK、QA 脚本
+└── docs/screenshots/    界面截图
 ```
 
-> Android 包名仍为 `com.octodeck.app`，WebView 桥接名仍为 `window.OctoDeck`，localStorage 键仍为 `octodeck.token`：这些是内部标识，改名会破坏已安装用户的登录态与桥接调用，因此保留。
+## 本地运行
 
-## 运行 Web
+### Web 预览
 
 ```bash
 cd web && npm install
 cd ../server && npm install
 cd ..
-cp .env.example .env.local          # 可留空；留空时直接进入公开浏览
+cp .env.example .env.local          # 可留空，留空时直接进入公开浏览
 node server/index.mjs                # http://127.0.0.1:8787
 ```
 
-服务端默认**不会**用 `.env.local` 中的 Token 自动登录。仅在本地调试、明确需要服务端令牌时设置：
-
-```bash
-OCTODECK_ALLOW_SERVER_TOKEN=1 node server/index.mjs
-```
-
-**不要把带 Token 的 server 暴露到公网。**
-
-开发模式（Vite 热更新，`/api` 代理到 8787）：
+开发模式（Vite 热更新，`/api` 自动代理到 8787）：
 
 ```bash
 node server/index.mjs
 cd web && npm run dev                # http://127.0.0.1:5173
 ```
 
-## 构建 APK
+服务端默认不会使用 `.env.local` 中的 Token 自动登录。仅在本地调试且明确需要服务端令牌时启用：
 
-环境：JDK 17、Android SDK 35、Gradle 8.11.1。脚本会自动把 `web/dist` 与 `hosts.json` 打进 assets。
+```bash
+OCTODECK_ALLOW_SERVER_TOKEN=1 node server/index.mjs
+```
+
+> 带 Token 的服务端不要暴露到公网。
+
+### 构建 APK
+
+环境要求：JDK 17、Android SDK 35、Gradle 8.11。构建脚本会自动打包 `web/dist` 与 `hosts.json` 到 assets，并在打包前检查是否混入真实 Token。
 
 ```bash
 ./scripts/build-apk.sh
-# 产物：GitHubMobile-1.6.1.apk（debug 签名，可直接侧载）
+# 产物：GitHubMobile-1.6.1.apk（debug 签名，可直接安装）
 ```
 
-如果 JDK / SDK 不在默认路径：
+JDK / SDK 不在默认路径时：
 
 ```bash
 OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/build-apk.sh
 ```
 
-脚本会先跑 JVM 单元测试（Host 解析、IPv4 校验、状态 JSON 解析），再构建 debug APK。**构建前会检查 assets 中是否出现真实 Token，发现则拒绝构建。**
+脚本会先运行 JVM 单元测试（Host 映射解析、IPv4 校验、状态 JSON 解析），再构建 debug APK。
 
-### 登录与令牌
+## 隐私与安全
 
-- 不登录也能使用；登录入口在「设置 → GitHub 连接」。
-- 使用 GitHub Personal Access Token，不需要账号密码（GitHub API 不支持密码登录）。
-- Android：Token 使用 Android Keystore / AES-256-GCM 加密保存；Web：localStorage。下次启动自动恢复。
-- 退出登录会清除本机 Token 并回到公开浏览；APK 与仓库中不包含任何令牌。
-- 需要 `repo`、`read:user`；读 Actions 加 `workflow`；通知加 `notifications`。
-- 你曾在对话中贴出的 Token 已经暴露，建议立即在 GitHub 撤销并重新生成；不要把它写进源码或 Release。
-
-## 验证记录
-
-### 浏览器端（Playwright + Chromium）
-
-- **无凭证进入**：清空 localStorage 后打开首页，不出现登录页；顶部显示「公开浏览」，标题为「首页 · GitHub Mobile」，可直接进入 `sindresorhus/awesome` 等仓库。
-- **Releases 前置**：仓库标签为「代码 / Releases / 议题 / 拉取请求 / Actions / 项目 / Wiki / 安全 / 洞察」，第二个位置可直接进入发行版页。
-- **手机端菜单**：390 × 844 下代码菜单边界为 `x=6, y=271.5, 宽 374, 高 315`，完全落在视口内；下载 ZIP / TAR.GZ 可见可点。
-- **私有仓库**：Token 登录后 `/repos` 共 8 个仓库，其中 6 个带「私有」徽标；私有发行版页显示资产。
-- **真实下载**：公开仓库 ZIP（16.8 MB，ZIP 魔数）、私有发行版源码 ZIP（2.6 MB）、私有 Release 附件（APK）、PR Diff、Actions 日志均实际落盘并校验。
-- **应用内写入（临时私有仓库，测试后已删除）**：
-  - 新建仓库 → 仓库页正常打开；
-  - 创建 `hello.md` → 编辑为 v2 → 页面显示新内容；
-  - 新建议题 → 编辑标题 → 标题更新；
-  - 发布 `v0.1.0` Release → 发行版卡片出现；
-  - 设置页修改描述 → 提示「仓库设置已保存」；
-  - 删除文件 → 返回目录；删除仓库 → API 返回 404。
-- **洞察页**：流量 / 代码频率 / 网络 / 分叉全部应用内渲染，卡片内 `a[target=_blank]` 数量为 0。
-- **PR 闭环（临时仓库）**：从 `feature` 向 `main` 创建 PR → 应用内选择合并方式并合并 → 页面显示「已合并」，API `merged_at` 已写入。
-- 所有页面 `scrollWidth - innerWidth = 0`，无横向溢出。
-
-### Android
-
-- `:app:testDebugUnitTest`：7 个 JVM 测试全部通过（Host 映射解析、禁用回退、官方直连、自定义合法/非法 IP、状态 JSON 解析与损坏回退）。
-- `:app:assembleDebug`：`versionCode 8`、`versionName 1.6.1`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
-- 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
-- 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
-- Wiki 在 APK 中通过原生桥读取 `raw.githubusercontent.com/wiki/`，不依赖本地 Node 服务。
-- 模拟器首次点击「下载 ZIP」会弹出系统文件夹选择器；选择并保存后，第二次下载不再弹窗，直接使用已保存目录（实测 `MainActivity` 保持前台，无 DocumentsUI）。
-- 设置页「更改文件夹」会重新打开系统文件夹选择器；目录标签显示为 `Download`，可随时更换。
-- 模拟器沙箱无外网，实际文件写入以真机为准；文件名补全与 `Content-Disposition` 逻辑已实现。
+- Token 仅保存在本机：Android 使用 Keystore + AES-256-GCM 加密，Web 版使用 localStorage；APK 与仓库中不包含任何令牌。
+- 原生 WebView 只加载本地 assets，外部链接交给系统浏览器或受限网页视图；JS 桥接不暴露给远程页面。
+- `/api/download` 仅允许 GitHub 及其 CDN 域名，跟随重定向时逐跳校验，文件名会清洗以避免路径穿越。
+- 图片加载有域名白名单，避免 Token 或内网地址经由任意图片请求泄露。
+- `allowBackup=false`，系统备份不会带走加密后的令牌。
+- `.env.local`、`local.properties`、`*.jks` 已在 `.gitignore` 中；请勿将真实 Token 写入源码、Issue 或 Release。
 
 ## 已知限制
 
-- **匿名限额**：未登录使用 GitHub 匿名 API，约 60 次/小时/IP；超限时页面会提示登录，不会白屏。
-- **模拟器**：沙箱无 KVM，只能强制 TCG 软件模拟；系统 UI 会 ANR。
-- **旧 WebView**：Android 11 自带 WebView 83 不支持 flex gap，间距更紧凑；现代 WebView 正常。
-- 仓库高级设置（访问控制、Webhooks、Pages 等）使用应用内 GitHub 网页视图；合并 PR、创建 Release、常规仓库设置均在应用内完成。
-- Actions 日志可能因 GitHub 保留期限过期而返回 404；下载托盘会显示具体错误。
-- Host IP 会随 GitHub 调度变化；连接失败时请测速或切回官方直连。
-- 未做 iOS / 桌面打包；Web 版可直接部署。
+- **匿名限流**：未登录时使用 GitHub 匿名 API，约 60 次/小时/IP；超限会提示登录。
+- **旧版 WebView**：Android 11 自带的 WebView 83 不支持 flex gap，间距会略紧凑；更新 WebView 后正常。
+- **浏览器深链**：在浏览器地址栏直接输入网址无法被第三方应用拦截，这是 Android 的系统限制；可将链接分享到本应用，或在系统设置中将 GitHub 链接的默认打开方式设为 GitHub Mobile。
+- **高级仓库设置**：访问控制、Webhooks、Pages 等仍通过应用内 GitHub 网页视图完成。
+- **Actions 日志**：超过 GitHub 保留期限后接口返回 404，下载托盘会显示具体原因。
+- **Host IP**：GitHub 边缘节点会变化，连接失败时测速或切回官方直连。
+- 暂无 iOS 与桌面客户端；Web 前端可独立部署。
 
-## 安全
+## 参与贡献
 
-- 不要把 `.env.local`、`local.properties`、`*.jks` 提交到 Git；这些已在 `.gitignore`。
-- 本地 Node 服务绑定 `127.0.0.1`，`.env.local` 可能保存真实 Token；默认不用于自动登录。
-- `/api/download` 有域名白名单与重定向校验，只允许 GitHub 及其 CDN；文件名会清洗，避免路径穿越。
-- 原生 WebView 只加载 `appassets.androidplatform.net` 下的本地资源；所有外部链接交给系统浏览器，桥接 API 不暴露给远程页面。
-- 图片代理/加载有域名白名单，避免把 Token 或本地网络暴露给任意 README 图片地址。
-- `allowBackup=false`，系统备份不会带走加密令牌。
-- 仓库历史已重写为不含个人截图/快照的版本；旧 Release 已删除。
+欢迎提交 Issue 与 Pull Request。建议先开 Issue 描述问题或需求，说明复现步骤、Android 版本与设备型号；提交代码前请确保 `./scripts/build-apk.sh` 与 JVM 单元测试通过。请勿在 Issue、日志或截图中包含 Token、Cookie 等凭据。
 
-## 许可
+## 更新日志
 
-代码采用 MIT。GitHub Octicons 使用 MIT；GitHub 名称与 Octocat 图形是 GitHub, Inc. 的商标，本项目为非官方第三方客户端，仅作兼容性展示。
+各版本的变更记录见 [CHANGELOG.md](CHANGELOG.md) 与 [Releases](https://github.com/74267364484/GitHub-Mobile/releases)。
+
+## 许可证
+
+本项目代码采用 MIT 许可证。GitHub Octicons 使用 MIT 许可证。GitHub 名称与 Octocat 图形是 GitHub, Inc. 的商标；本项目为非官方第三方客户端，仅作兼容性展示。
