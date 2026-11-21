@@ -83,7 +83,7 @@
 ## v1.3.0 更新
 
 - **不再强制登录**：没有 Token 也能直接进入。首次启动自动加载中性公开数据（`sindresorhus/awesome`、`microsoft/vscode`），顶部明确显示「公开浏览」；搜索与仓库页会匿名读取 GitHub 公共 API。只有访问私有仓库、通知、个人数据时才需要登录。
-- **软件名改为 GitHub Mobile**：启动页、系统应用名、页面标题、页脚与关于页统一；保留「非官方客户端」声明。仓库仍为 `octomobile`。
+- **软件名改为 GitHub Mobile**：启动页、系统应用名、页面标题、页脚与关于页统一；保留「非官方客户端」声明。仓库名现为 `GitHub-Mobile`。
 - **发行版入口**：仓库二级导航新增「发行版」标签，手机端一眼可见；发行版页支持资源下载、源码 ZIP / TAR.GZ，并补上加载失败与限流提示。
 - **下拉菜单适配**：菜单会自动限制在视口内，手机端点击「代码」不再被裁切；克隆地址行在窄屏自动换行，下载 ZIP / TAR.GZ 完整可见。
 - **下载位置自选**：Android 端每次下载都会弹出系统文件选择器（SAF），由你决定保存目录与文件名；取消选择则不会创建文件。Web 端由浏览器下载设置决定保存位置。
@@ -171,7 +171,7 @@ GitHub Mobile 不是 GitHub 的封装壳，而是一套按 GitHub 视觉与信�
 ## 目录
 
 ```
-octomobile/
+GitHub-Mobile/
 ├── web/                 React 18 + TypeScript + Vite
 │   ├── src/components/  Header / LeftRail / HostCard / DownloadTray / Markdown / DiffView ...
 │   ├── src/pages/       首页、仓库、发行版、Issues、PR、Actions、Profile、Settings ...
@@ -274,7 +274,7 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 - **匿名限额**：未登录使用 GitHub 匿名 API，约 60 次/小时/IP；超限时页面会提示登录，不会白屏。
 - **模拟器**：沙箱无 KVM，只能强制 TCG 软件模拟；系统 UI 会 ANR。
 - **旧 WebView**：Android 11 自带 WebView 83 不支持 flex gap，间距更紧凑；现代 WebView 正常。
-- 仓库 Settings 是只读预览；合并 PR、创建 Release、修改仓库设置会跳转 GitHub。
+- 仓库高级设置（访问控制、Webhooks、Pages 等）使用应用内 GitHub 网页视图；合并 PR、创建 Release、常规仓库设置均在应用内完成。
 - Actions 日志可能因 GitHub 保留期限过期而返回 404；下载托盘会显示具体错误。
 - Host IP 会随 GitHub 调度变化；连接失败时请测速或切回官方直连。
 - 未做 iOS / 桌面打包；Web 版可直接部署。
