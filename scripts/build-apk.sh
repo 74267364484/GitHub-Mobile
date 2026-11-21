@@ -26,11 +26,11 @@ fi
 
 printf 'sdk.dir=%s\n' "$ANDROID_HOME" > "$ROOT/android/local.properties"
 
-if [ ! -f "$HOME/.android/debug.keystore" ]; then
-  mkdir -p "$HOME/.android"
-  keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" \
-    -storepass android -alias androiddebugkey -keypass android \
-    -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000 >/dev/null
+KEYSTORE="$ROOT/android/keystore/github-mobile-debug.keystore"
+if [ ! -f "$KEYSTORE" ]; then
+  echo "Signing keystore not found: $KEYSTORE" >&2
+  echo "The repository ships a fixed debug keystore so APK updates keep the same signature." >&2
+  exit 1
 fi
 
 TOKEN_VALUE=""

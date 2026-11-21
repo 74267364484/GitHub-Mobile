@@ -17,7 +17,13 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            // Fixed debug key kept in the repository. Do not let the build
+            // regenerate a per-machine key: every APK must be signed with the
+            // same certificate so updates can be installed over older builds.
+            storeFile = file("../keystore/github-mobile-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
