@@ -107,9 +107,6 @@ export function DashboardPage() {
       <div className="dashboard-main">
         <div className="page-heading">
           <h1>首页</h1>
-          <a className="page-heading-link" href="https://github.com/dashboard" target="_blank" rel="noreferrer">
-            <Octicon name="link-external" size={14} /> github.com
-          </a>
         </div>
 
         <ContributionGraph calendar={calendar} loading={calLoading && !calendar} compact />
@@ -117,9 +114,6 @@ export function DashboardPage() {
         <div className="feed-card card">
           <div className="feed-head">
             <h2>最近活动</h2>
-            <a href={`https://github.com/${user?.login || ''}?tab=overview&from=${new Date().toISOString().slice(0, 10)}`} target="_blank" rel="noreferrer">
-              在 GitHub 查看 <Octicon name="link-external" size={12} />
-            </a>
           </div>
           {eventsState.loading && <div className="pad"><Skeleton height={48} /><Skeleton height={48} /><Skeleton height={48} /></div>}
           {!eventsState.loading && (eventsState.data || []).length === 0 && (

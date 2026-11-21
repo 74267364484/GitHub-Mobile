@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Octicon, type IconName } from './Octicon'
 import { timeAgo } from '../lib/format'
 
@@ -154,7 +155,7 @@ export function Dialog({
     }
   }, [onClose])
 
-  return (
+  return createPortal(
     <div className="dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className={`dialog ${className}`} style={{ width }} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : 'Dialog'}>
         <div className="dialog-head">
@@ -169,7 +170,8 @@ export function Dialog({
         <div className="dialog-content">{children}</div>
         {footer && <div className="dialog-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

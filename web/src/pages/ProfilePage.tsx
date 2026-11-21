@@ -3,13 +3,14 @@ import type React from 'react'
 import type { ContributionCalendar, GitHubEvent, GitHubUser, Repository } from '../types'
 import { useApi, useDocumentTitle } from '../lib/hooks'
 import { useApp } from '../state/AppState'
-import { fetchContributions, openExternal } from '../lib/api'
+import { fetchContributions, gh } from '../lib/api'
 import { ContributionGraph } from '../components/ContributionGraph'
 import { Octicon, type IconName } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
-import { ButtonLink, EmptyState, Skeleton } from '../components/ui'
+import { Button, Dialog, EmptyState, Skeleton } from '../components/ui'
+import { NewRepoDialog } from '../components/WriteDialogs'
 import { compact, formatDate, languageColor, timeAgo, firstLine } from '../lib/format'
-import { useRoute } from '../lib/router'
+import { navigate, useRoute } from '../lib/router'
 import { NotFoundPage } from './NotFoundPage'
 
 type ProfileTab = 'overview' | 'repositories' | 'projects' | 'packages' | 'stars'
@@ -62,7 +63,7 @@ function RepoMiniCard({ repo }: { repo: Repository }) {
 
 export function ProfilePage() {
   const route = useRoute()
-  const { user: current, repos: authRepos } = useApp()
+  const { user: current, repos: authRepos, config, showToast, reload } = useApp()
   const login = (route.kind === 'profile' && route.login) || current?.login || ''
   const isSelf = Boolean(login && current && login.toLowerCase() === current.login.toLowerCase())
   const userState = useApi<GitHubUser>(login ? `/users/${login}` : null)
@@ -75,6 +76,11 @@ export function ProfilePage() {
   const [calLoading, setCalLoading] = useState(true)
   const [tab, setTab] = useState<ProfileTab>('overview')
   const [repoFilter, setRepoFilter] = useState('')
+  const [editOpen, setEditOpen] = useState(false)
+  const [newRepoOpen, setNewRepoOpen] = useState(false)
+  const [peopleList, setPeopleList] = useState<'followers' | 'following' | null>(null)
+  const [following, setFollowing] = useState<boolean | null>(null)
+  const [followBusy, setFollowBusy] = useState(false)
 
   const user = isSelf ? (current || userState.data) : userState.data
   const repos = reposState.data || (isSelf ? authRepos : [])
@@ -94,6 +100,35 @@ export function ProfilePage() {
       .finally(() => { if (alive) setCalLoading(false) })
     return () => { alive = false }
   }, [login, isSelf])
+
+  useEffect(() => {
+    let alive = true
+    setFollowing(null)
+    if (!config?.hasToken || isSelf || !login) return
+    gh(`/user/following/${encodeURIComponent(login)}`)
+      .then(() => { if (alive) setFollowing(true) })
+      .catch((e: any) => { if (alive) setFollowing(e?.status === 404 ? false : null) })
+    return () => { alive = false }
+  }, [config?.hasToken, isSelf, login])
+
+  const toggleFollow = async () => {
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能关注用户', 'info')
+      navigate('/settings')
+      return
+    }
+    const next = !following
+    setFollowBusy(true)
+    try {
+      await gh(`/user/following/${encodeURIComponent(login)}`, { method: next ? 'PUT' : 'DELETE' })
+      setFollowing(next)
+      showToast(next ? `已关注 ${login}` : `已取消关注 ${login}`, 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+    } finally {
+      setFollowBusy(false)
+    }
+  }
 
   const popular = useMemo(
     () => [...repos].sort((a, b) => b.stargazers_count - a.stargazers_count).slice(0, 6),
@@ -145,25 +180,25 @@ export function ProfilePage() {
 
         <div className="profile-actions">
           {isSelf ? (
-            <a className="btn btn-default profile-follow-btn" href="https://github.com/settings/profile" target="_blank" rel="noreferrer">
+            <Button className="profile-follow-btn" onClick={() => setEditOpen(true)}>
               编辑资料
-            </a>
+            </Button>
           ) : (
-            <button className="btn btn-default profile-follow-btn" onClick={() => openExternal(`https://github.com/${user.login}`)}>
-              关注
-            </button>
+            <Button className="profile-follow-btn" onClick={toggleFollow} disabled={followBusy}>
+              {followBusy ? '处理中…' : following ? '取消关注' : '关注'}
+            </Button>
           )}
         </div>
 
         <div className="profile-meta">
           <div className="profile-follow-row">
-            <a href={`https://github.com/${user.login}?tab=followers`} target="_blank" rel="noreferrer">
+            <button className="profile-count-btn" onClick={() => setPeopleList('followers')}>
               <Octicon name="people" size={16} /> <strong>{compact(user.followers ?? user.followersCount ?? 0)}</strong> 关注者
-            </a>
+            </button>
             <span>·</span>
-            <a href={`https://github.com/${user.login}?tab=following`} target="_blank" rel="noreferrer">
+            <button className="profile-count-btn" onClick={() => setPeopleList('following')}>
               <strong>{compact(user.following ?? user.followingCount ?? 0)}</strong> 正在关注
-            </a>
+            </button>
           </div>
           {user.company && <div className="profile-meta-row"><Octicon name="repo" size={16} /> {user.company}</div>}
           {user.location && <div className="profile-meta-row"><Octicon name="location" size={16} /> {user.location}</div>}
@@ -201,7 +236,6 @@ export function ProfilePage() {
             <ContributionGraph calendar={calendar} loading={calLoading && !calendar} />
             <div className="profile-section-head">
               <h2>贡献活动</h2>
-              <a href={`https://github.com/${user.login}`} target="_blank" rel="noreferrer">在 GitHub 查看 <Octicon name="link-external" size={12} /></a>
             </div>
             {events.length > 0 ? (
               <div className="profile-activity">
@@ -252,9 +286,11 @@ export function ProfilePage() {
                 <Octicon name="search" size={16} />
                 <input className="form-input" placeholder="查找仓库…" value={repoFilter} onChange={(e) => setRepoFilter(e.target.value)} />
               </div>
-              <a className="btn btn-sm btn-primary" href="https://github.com/new" target="_blank" rel="noreferrer">
-                <Octicon name="repo" size={14} /> 新建
-              </a>
+              {isSelf && (
+                <Button size="sm" variant="primary" icon="repo" onClick={() => setNewRepoOpen(true)}>
+                  新建
+                </Button>
+              )}
             </div>
             <div className="profile-repo-list">
               {filteredRepos.map((r) => (
@@ -272,7 +308,6 @@ export function ProfilePage() {
                       <span>更新于 {timeAgo(r.updated_at)}</span>
                     </div>
                   </div>
-                  <a className="btn btn-sm btn-default" href={`https://github.com/${r.full_name}`} target="_blank" rel="noreferrer">GitHub</a>
                 </div>
               ))}
               {filteredRepos.length === 0 && <div className="side-empty">没有找到仓库。</div>}
@@ -310,14 +345,166 @@ export function ProfilePage() {
               icon={tab === 'projects' ? 'table' : 'package'}
               title={tab === 'projects' ? '暂无项目' : '暂无已发布的包'}
             >
-              <p>{tab === 'projects' ? 'GitHub 项目用于规划和跟踪工作。' : 'Packages 用于在组织内发布和使用软件包。'}</p>
-              <a className="btn btn-default" href={`https://github.com/${user.login}?tab=${tab}`} target="_blank" rel="noreferrer">
-                Open on GitHub <Octicon name="link-external" size={12} />
-              </a>
+              <p>{tab === 'projects' ? '仓库内的项目可在对应仓库的「项目」页查看。' : 'Packages 用于在组织内发布和使用软件包。'}</p>
             </EmptyState>
           </div>
         )}
       </div>
+
+      {editOpen && user && (
+        <EditProfileDialog
+          user={user}
+          onClose={() => setEditOpen(false)}
+          onSaved={async () => {
+            setEditOpen(false)
+            await reload()
+            showToast('个人资料已更新', 'success')
+          }}
+        />
+      )}
+
+      {newRepoOpen && (
+        <NewRepoDialog
+          onClose={() => setNewRepoOpen(false)}
+          onCreated={(repo) => {
+            setNewRepoOpen(false)
+            showToast(`仓库 ${repo.full_name} 已创建`, 'success')
+            navigate(`/${repo.owner.login}/${repo.name}`)
+          }}
+        />
+      )}
+
+      {peopleList && (
+        <PeopleListDialog
+          login={login}
+          kind={peopleList}
+          onClose={() => setPeopleList(null)}
+        />
+      )}
     </div>
+  )
+}
+
+function EditProfileDialog({
+  user, onClose, onSaved,
+}: {
+  user: GitHubUser
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const { showToast } = useApp()
+  const [name, setName] = useState(user.name || '')
+  const [bio, setBio] = useState(user.bio || '')
+  const [company, setCompany] = useState(user.company || '')
+  const [location, setLocation] = useState(user.location || '')
+  const [blog, setBlog] = useState(user.blog || '')
+  const [twitter, setTwitter] = useState(user.twitter_username || '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await gh('/user', {
+        method: 'PATCH',
+        body: {
+          name: name.trim() || null,
+          bio: bio.trim() || null,
+          company: company.trim() || null,
+          location: location.trim() || null,
+          blog: blog.trim() || null,
+          twitter_username: twitter.trim() || null,
+        },
+      })
+      onSaved()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '保存失败'
+      setError(message)
+      showToast(message, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Dialog
+      title="编辑个人资料"
+      subtitle="保存在你的 GitHub 账号"
+      onClose={onClose}
+      width={560}
+      footer={(
+        <div className="dialog-actions">
+          <Button onClick={onClose} disabled={busy}>取消</Button>
+          <Button variant="primary" icon="check" onClick={submit} disabled={busy}>
+            {busy ? '保存中…' : '保存资料'}
+          </Button>
+        </div>
+      )}
+    >
+      <form className="write-form" onSubmit={submit}>
+        <label className="settings-field">
+          <span className="settings-label">昵称</span>
+          <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="你的名字" autoFocus />
+        </label>
+        <label className="settings-field">
+          <span className="settings-label">简介</span>
+          <textarea className="form-input" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="一句话介绍自己" />
+        </label>
+        <div className="write-form-row">
+          <label className="settings-field">
+            <span className="settings-label">公司</span>
+            <input className="form-input" value={company} onChange={(e) => setCompany(e.target.value)} />
+          </label>
+          <label className="settings-field">
+            <span className="settings-label">所在地</span>
+            <input className="form-input" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </label>
+        </div>
+        <div className="write-form-row">
+          <label className="settings-field">
+            <span className="settings-label">网站</span>
+            <input className="form-input" value={blog} onChange={(e) => setBlog(e.target.value)} placeholder="https://example.com" />
+          </label>
+          <label className="settings-field">
+            <span className="settings-label">X / Twitter</span>
+            <input className="form-input" value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="username" />
+          </label>
+        </div>
+        {error && <div className="form-error">{error}</div>}
+      </form>
+    </Dialog>
+  )
+}
+
+function PeopleListDialog({
+  login, kind, onClose,
+}: {
+  login: string
+  kind: 'followers' | 'following'
+  onClose: () => void
+}) {
+  const state = useApi<GitHubUser[]>(`/users/${encodeURIComponent(login)}/${kind}?per_page=100`)
+  return (
+    <Dialog
+      title={kind === 'followers' ? '关注者' : '正在关注'}
+      subtitle={`@${login}`}
+      onClose={onClose}
+      width={480}
+    >
+      {state.loading && <Skeleton height={120} />}
+      {state.error && <div className="form-error">{state.error.message}</div>}
+      <div className="people-list-dialog">
+        {(state.data || []).map((u) => (
+          <a className="people-list-row" key={u.id} href={`#/user/${u.login}`}>
+            <Avatar user={u} size={28} />
+            <span>{u.login}</span>
+          </a>
+        ))}
+        {!state.loading && !state.error && (state.data || []).length === 0 && <p className="muted">暂无用户。</p>}
+      </div>
+    </Dialog>
   )
 }

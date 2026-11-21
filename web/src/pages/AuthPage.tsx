@@ -5,6 +5,7 @@ import { Octicon } from '../components/Octicon'
 import { HostDialog } from '../components/HostCard'
 import { Button, Spinner } from '../components/ui'
 import { hostSummary } from '../lib/hosts'
+import { openGithubPage } from '../lib/deeplink'
 
 export function AuthLoading() {
   return (
@@ -121,9 +122,9 @@ export function AuthPage() {
           </form>
 
           <div className="auth-help">
-            <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
-              创建个人访问令牌 <Octicon name="link-external" size={12} />
-            </a>
+            <button className="auth-help-link" onClick={() => openGithubPage('https://github.com/settings/tokens')}>
+              在应用内创建个人访问令牌 <Octicon name="arrow-right" size={12} />
+            </button>
             <span>需要 <code>repo</code>、<code>read:user</code> 权限；读取 Actions 加 <code>workflow</code>，通知加 <code>notifications</code></span>
           </div>
 
@@ -152,9 +153,7 @@ export function AuthPage() {
         </div>
 
         <div className="auth-foot">
-          <span>GitHub Mobile v1.5.0</span>
-          <span>·</span>
-          <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+          <span>GitHub Mobile v1.6.0</span>
           <span>·</span>
           <span>与 GitHub, Inc. 无隶属关系</span>
         </div>

@@ -10,15 +10,18 @@ import {
   HOST_LABELS, HOSTNAMES, effectiveHosts, hostSummary, mappingById,
 } from '../lib/hosts'
 import { invalidateCache, loadDemoData, refreshDemo } from '../lib/api'
-import { isNative, nativeChooseDownloadDir, nativeDownloadDir, type DownloadDirInfo } from '../lib/native'
+import { isNative, nativeChooseDownloadDir, nativeDownloadDir, nativeOpenLinkSettings, type DownloadDirInfo } from '../lib/native'
+import { dispatchOpenUrl, openGithubPage } from '../lib/deeplink'
+import { copyText } from '../lib/clipboard'
 import { compact } from '../lib/format'
 import type { SnapshotData } from '../types'
 
-type Section = 'account' | 'host' | 'appearance' | 'data' | 'about'
+type Section = 'account' | 'host' | 'links' | 'appearance' | 'data' | 'about'
 
 const SECTIONS: { id: Section; label: string; icon: any }[] = [
   { id: 'account', label: '账户', icon: 'person' },
   { id: 'host', label: 'Host 映射', icon: 'server' },
+  { id: 'links', label: '链接与授权', icon: 'link' },
   { id: 'appearance', label: '外观', icon: 'sun' },
   { id: 'data', label: '数据与缓存', icon: 'database' },
   { id: 'about', label: '关于', icon: 'info' },
@@ -36,6 +39,7 @@ export function AppSettingsPage() {
   const [hostOpen, setHostOpen] = useState(false)
   const [snapshotMeta, setSnapshotMeta] = useState<SnapshotData | null>(null)
   const [downloadDir, setDownloadDir] = useState<DownloadDirInfo | null>(() => nativeDownloadDir())
+  const [linkTest, setLinkTest] = useState('https://github.com/sindresorhus/awesome')
   useDocumentTitle('设置')
 
   useEffect(() => {
@@ -68,7 +72,7 @@ export function AppSettingsPage() {
     <div className="settings-page app-settings">
       <div className="page-heading">
         <h1>设置</h1>
-        <span className="page-heading-sub">GitHub Mobile v1.5.0</span>
+        <span className="page-heading-sub">GitHub Mobile v1.6.0</span>
       </div>
 
       <div className="settings-layout">
@@ -79,9 +83,9 @@ export function AppSettingsPage() {
             </button>
           ))}
           <div className="settings-nav-foot">
-            <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
+            <button onClick={() => openGithubPage('https://github.com/settings/tokens')}>
               GitHub token 管理 <Octicon name="link-external" size={12} />
-            </a>
+            </button>
           </div>
         </aside>
 
@@ -217,6 +221,67 @@ export function AppSettingsPage() {
             </>
           )}
 
+          {section === 'links' && (
+            <>
+              <div className="settings-card card">
+                <div className="settings-card-head">
+                  <h3>GitHub 链接由应用接管</h3>
+                  <p>从其他应用点击或分享 GitHub 链接时，直接进入 GitHub Mobile，而不是打开浏览器。</p>
+                </div>
+                <ul className="settings-list">
+                  <li>已注册 <code>github.com</code>、<code>gist.github.com</code>、<code>githubmobile://</code> 与文本分享。</li>
+                  <li>应用内所有 GitHub 链接会被路由到对应页面；没有原生页面的设置/授权页会在应用内网页视图中打开。</li>
+                  <li>浏览器地址栏直接输入的网址无法被任何应用拦截，这是 Android 的系统限制；请把 GitHub 链接分享到 GitHub Mobile。</li>
+                </ul>
+                <div className="settings-button-row">
+                  {isNative() && (
+                    <Button size="sm" icon="gear" onClick={() => nativeOpenLinkSettings()}>
+                      系统默认打开设置
+                    </Button>
+                  )}
+                  <Button size="sm" icon="key" onClick={() => openGithubPage('https://github.com/settings/tokens')}>
+                    在应用内管理 Token
+                  </Button>
+                  <Button
+                    size="sm"
+                    icon="copy"
+                    onClick={async () => {
+                      await copyText('githubmobile://oauth/callback')
+                      showToast('OAuth 回调地址已复制', 'success')
+                    }}
+                  >
+                    复制 OAuth 回调地址
+                  </Button>
+                </div>
+              </div>
+
+              <div className="settings-card card">
+                <div className="settings-card-head">
+                  <h3>第三方账号绑定</h3>
+                  <p>其他平台要求绑定 GitHub 时，授权页会在本应用内打开，完成后自动回到原应用。</p>
+                </div>
+                <ul className="settings-list">
+                  <li>收到 <code>github.com/login/oauth/authorize</code> 链接时，先显示权限确认对话框，再进入应用内授权页。</li>
+                  <li>授权回调地址：<code>githubmobile://oauth/callback</code>；应用会展示 code 与 state，但不保存 client secret。</li>
+                  <li>如果对方使用自己的自定义 scheme 回调，应用会询问是否把授权结果交回原应用。</li>
+                </ul>
+                <div className="link-test-row">
+                  <input
+                    className="form-input"
+                    value={linkTest}
+                    onChange={(e) => setLinkTest(e.target.value)}
+                    placeholder="https://github.com/owner/repo"
+                    spellCheck={false}
+                  />
+                  <Button size="sm" variant="primary" icon="arrow-right" onClick={() => dispatchOpenUrl(linkTest.trim())}>
+                    测试打开
+                  </Button>
+                </div>
+                <p className="form-hint">也可以用 <code>adb shell am start -a android.intent.action.VIEW -d "https://github.com/..." com.octodeck.app</code> 验证。</p>
+              </div>
+            </>
+          )}
+
           {section === 'appearance' && (
             <div className="settings-card card">
               <div className="settings-card-head">
@@ -320,7 +385,7 @@ export function AppSettingsPage() {
               <div className="about-app-head">
                 <span className="about-app-logo"><Octicon name="mark-github" size={40} /></span>
                 <div>
-                  <h3>GitHub Mobile <span className="about-version">v1.5.0</span></h3>
+                  <h3>GitHub Mobile <span className="about-version">v1.6.0</span></h3>
                   <p>与 GitHub 网页同构的 Android 客户端，内置可切换的 Host 映射。</p>
                 </div>
               </div>
@@ -339,8 +404,8 @@ export function AppSettingsPage() {
                   GitHub Mobile 是独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是 GitHub, Inc. 的商标。
                 </p>
                 <div className="settings-button-row">
-                  <a className="btn btn-sm btn-default" href="https://github.com" target="_blank" rel="noreferrer">github.com <Octicon name="link-external" size={12} /></a>
-                  <a className="btn btn-sm btn-default" href="https://docs.github.com/rest" target="_blank" rel="noreferrer">REST API 文档 <Octicon name="link-external" size={12} /></a>
+                  <Button size="sm" icon="link" onClick={() => openGithubPage('https://github.com')}>在应用内打开 github.com</Button>
+                  <Button size="sm" icon="book" onClick={() => openGithubPage('https://docs.github.com/rest')}>REST API 文档</Button>
                 </div>
               </div>
             </div>

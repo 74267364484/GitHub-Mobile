@@ -4,7 +4,166 @@ import { useApi } from '../lib/hooks'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
 import { Skeleton } from '../components/ui'
+import { FileDialog } from '../components/WriteDialogs'
+import { useApp } from '../state/AppState'
+import { navigate } from '../lib/router'
 import { compact, firstLine, languagePercent, timeAgo } from '../lib/format'
+
+const MIT_LICENSE = `MIT License
+
+Copyright (c) 2026 {{owner}}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+`
+
+const COMMUNITY_FILES: Record<string, { path: string; content: string }> = {
+  README: {
+    path: 'README.md',
+    content: `# 项目名称
+
+一句话介绍这个项目。
+
+## 安装
+
+    npm install
+
+## 使用
+
+    npm start
+
+## 贡献
+
+欢迎提交 Issue 与 Pull Request，详情见 CONTRIBUTING.md。
+
+## 许可证
+
+MIT
+`,
+  },
+  '许可证': { path: 'LICENSE', content: MIT_LICENSE },
+  '贡献指南': {
+    path: 'CONTRIBUTING.md',
+    content: `# 贡献指南
+
+感谢你愿意为这个项目做出贡献。
+
+## 报告问题
+
+- 先搜索已有 Issue，避免重复。
+- 描述复现步骤、期望结果和实际结果。
+
+## 提交拉取请求
+
+1. Fork 本仓库并创建分支。
+2. 保持改动聚焦，补充必要的测试。
+3. 在描述中说明改动原因和验证方式。
+
+## 行为准则
+
+参与本项目即表示同意遵守 CODE_OF_CONDUCT.md。
+`,
+  },
+  '行为准则': {
+    path: 'CODE_OF_CONDUCT.md',
+    content: `# 贡献者行为准则
+
+## 我们的承诺
+
+为了营造开放、友好的环境，我们承诺让每个人都能无骚扰地参与本项目。
+
+## 我们的标准
+
+- 使用友好和包容的语言。
+- 尊重不同的观点和经验。
+- 优雅地接受建设性批评。
+- 关注对社区最有利的事情。
+
+## 不可接受的行为
+
+- 性化语言或图像、人身攻击、侮辱或贬损性评论。
+- 公开或私下的骚扰。
+- 未经许可发布他人的私人信息。
+
+## 执行
+
+违反行为准则的行为可向项目维护者报告，维护者会及时、公正地处理。
+`,
+  },
+  '议题模板': {
+    path: '.github/ISSUE_TEMPLATE/bug_report.md',
+    content: `---
+name: Bug report
+about: 报告一个问题
+title: "[Bug] "
+labels: bug
+---
+
+## 问题描述
+
+## 复现步骤
+
+1.
+2.
+3.
+
+## 期望结果
+
+## 实际结果
+
+## 环境
+
+- 版本：
+- 系统：
+`,
+  },
+  '拉取请求模板': {
+    path: '.github/pull_request_template.md',
+    content: `## 改动内容
+
+## 关联 Issue
+
+Closes #
+
+## 验证方式
+
+- [ ] 本地测试通过
+- [ ] 已补充或更新测试
+`,
+  },
+  '安全策略': {
+    path: 'SECURITY.md',
+    content: `# 安全策略
+
+## 报告漏洞
+
+请不要在公开 Issue 中披露安全漏洞。请通过项目维护者的邮箱或 GitHub Security Advisory 私下报告。
+
+## 支持范围
+
+我们只为默认分支的最新版本提供安全修复。
+
+## 响应时间
+
+我们会在 3 个工作日内确认收到报告，并在修复发布后公开说明。
+`,
+  },
+}
 
 type InsightTab = 'community' | 'contributors' | 'pulse' | 'traffic' | 'commits' | 'frequency' | 'network' | 'forks'
 
@@ -28,6 +187,8 @@ export function InsightsPage({
 }) {
   const full = `${owner}/${repoName}`
   const [tab, setTab] = useState<InsightTab>('community')
+  const { config, showToast } = useApp()
+  const [communityFile, setCommunityFile] = useState<{ path: string; content: string } | null>(null)
   const treeState = useApi<{ tree: TreeEntry[] }>(`/repos/${full}/git/trees/${encodeURIComponent(repo.default_branch)}?recursive=1`)
   const languagesState = useApi<Record<string, number>>(`/repos/${full}/languages`)
   const contributorsState = useApi<GitHubUser[]>(`/repos/${full}/contributors?per_page=20`)
@@ -66,6 +227,21 @@ export function InsightsPage({
   const contributors = contributorsState.data || []
   const commits = commitsState.data || []
 
+  const openCommunityItem = (label: string) => {
+    if (label === '描述') {
+      navigate(`/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/settings`)
+      return
+    }
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能补全社区标准', 'info')
+      navigate('/settings')
+      return
+    }
+    const file = COMMUNITY_FILES[label]
+    if (!file) return
+    setCommunityFile({ path: file.path, content: file.content.replace('{{owner}}', owner) })
+  }
+
   return (
     <div className="insights-layout">
       <aside className="insights-side">
@@ -95,7 +271,11 @@ export function InsightsPage({
                   <div className="community-item" key={c.label}>
                     <Octicon name={c.ok ? 'check-circle-fill' : 'x'} size={16} className={c.ok ? 'ok' : 'muted'} />
                     <span className={c.ok ? '' : 'muted'}>{c.label}</span>
-                    {!c.ok && <a href={`https://github.com/${full}/community`} target="_blank" rel="noreferrer">添加</a>}
+                    {!c.ok && (
+                      <button className="community-add" onClick={() => openCommunityItem(c.label)}>
+                        {c.label === '描述' ? '设置' : '添加'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -241,6 +421,22 @@ export function InsightsPage({
           </div>
         )}
       </div>
+
+      {communityFile && (
+        <FileDialog
+          repo={full}
+          branch={repo.default_branch}
+          mode="create"
+          path={communityFile.path}
+          initialContent={communityFile.content}
+          onClose={() => setCommunityFile(null)}
+          onSaved={() => {
+            setCommunityFile(null)
+            treeState.reload()
+            showToast('社区文件已创建，检查项会自动更新', 'success')
+          }}
+        />
+      )}
     </div>
   )
 }

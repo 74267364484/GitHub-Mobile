@@ -37,9 +37,6 @@ export function ExplorePage() {
           <h1>探索 GitHub</h1>
           <p>发现仓库、话题，以及社区正在构建的项目。</p>
         </div>
-        <a className="btn btn-sm btn-default explore-hero-btn" href="https://github.com/explore" target="_blank" rel="noreferrer">
-          github.com/explore <Octicon name="link-external" size={12} />
-        </a>
       </div>
 
       <section className="explore-section">

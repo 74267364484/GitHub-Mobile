@@ -11,6 +11,8 @@ export type Route =
   | { kind: 'global-pulls' }
   | { kind: 'notifications' }
   | { kind: 'explore' }
+  | { kind: 'gists' }
+  | { kind: 'gist'; id: string }
   | { kind: 'profile'; login?: string }
   | { kind: 'settings' }
   | { kind: 'search'; q: string; type: string }
@@ -29,7 +31,7 @@ export type Route =
 
 const RESERVED = new Set([
   'repos', 'issues', 'pulls', 'notifications', 'explore', 'profile',
-  'settings', 'search', 'user', 'topics', 'marketplace',
+  'settings', 'search', 'user', 'topics', 'marketplace', 'gists', 'gist',
 ])
 
 function decode(seg: string): string {
@@ -54,6 +56,8 @@ export function parseHash(hash: string): Route {
   if (head === 'pulls' && segs.length === 1) return { kind: 'global-pulls' }
   if (head === 'notifications') return { kind: 'notifications' }
   if (head === 'explore') return { kind: 'explore' }
+  if (head === 'gists' && segs.length === 1) return { kind: 'gists' }
+  if (head === 'gist' && segs[1]) return { kind: 'gist', id: segs[1] }
   if (head === 'settings') return { kind: 'settings' }
   if (head === 'profile') return { kind: 'profile' }
   if (head === 'user' && segs[1]) return { kind: 'profile', login: segs[1] }
@@ -103,6 +107,8 @@ export function routeKey(route: Route): string {
       return [route.kind, route.owner, route.repo, route.tab, route.number, route.branch, route.mode, route.path, route.runId].join('|')
     case 'profile':
       return `profile|${route.login || 'me'}`
+    case 'gist':
+      return `gist|${route.id}`
     case 'search':
       return `search|${route.type}|${route.q}`
     default:

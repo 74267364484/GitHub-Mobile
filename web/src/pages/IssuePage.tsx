@@ -2,17 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Issue, IssueComment, Repository } from '../types'
 import { useApi, useDocumentTitle } from '../lib/hooks'
 import { useApp } from '../state/AppState'
-import { gh, invalidateCache, openExternal } from '../lib/api'
+import { gh, invalidateCache } from '../lib/api'
 import { copyText } from '../lib/clipboard'
 import { Octicon } from '../components/Octicon'
 import { IssueDialog } from '../components/WriteDialogs'
+import { LabelsDialog, AssigneesDialog, MilestoneDialog } from '../components/IssueMetaDialogs'
 import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
-import { IssueRow, useRedirectIfPull } from '../components/IssueRow'
-import { Button, ButtonLink, Dropdown, LabelPill, Skeleton, StateBadge } from '../components/ui'
+import { useRedirectIfPull } from '../components/IssueRow'
+import { Button, Dropdown, LabelPill, Skeleton, StateBadge } from '../components/ui'
 import { NotFoundPage } from './NotFoundPage'
 import { formatDateTime, timeAgo } from '../lib/format'
-import { repoHref } from '../lib/router'
 
 export function TimelineCard({
   author, createdAt, body, owner, repo, branch, isIssueBody, bodyLabel,
@@ -47,10 +47,7 @@ export function TimelineCard({
               {(close) => (
                 <>
                   <button className="dropdown-item" onClick={async () => { close(); await copyText(location.href); }}>
-                    <Octicon name="link" size={16} /> 复制链接
-                  </button>
-                  <button className="dropdown-item" onClick={() => { close(); openExternal(`https://github.com/${owner}/${repo}/${isIssueBody ? 'issues' : 'issues'}`) }}>
-                    <Octicon name="link-external" size={16} /> 在 GitHub 打开
+                    <Octicon name="link" size={16} /> 复制评论链接
                   </button>
                 </>
               )}
@@ -91,6 +88,10 @@ export function IssuePage({
   const [tab, setTab] = useState<'write' | 'preview'>('write')
   const [submitting, setSubmitting] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const [labelsOpen, setLabelsOpen] = useState(false)
+  const [assigneesOpen, setAssigneesOpen] = useState(false)
+  const [milestoneOpen, setMilestoneOpen] = useState(false)
 
   useRedirectIfPull(issue, owner, repoName)
   useDocumentTitle(issue ? `${issue.title} · #${issue.number}` : '议题')
@@ -182,10 +183,7 @@ export function IssuePage({
                 <button className="dropdown-item" onClick={async () => { close(); await copyText(location.href) }}>
                   <Octicon name="link" size={16} /> 复制链接
                 </button>
-                <button className="dropdown-item" onClick={() => { close(); openExternal(`https://github.com/${full}/issues/${issue.number}`) }}>
-                  <Octicon name="link-external" size={16} /> 在 GitHub 打开
-                </button>
-                <button className="dropdown-item" onClick={() => { close(); openExternal(`https://github.com/${full}/issues/new?body=${encodeURIComponent(`Ref #${issue.number}`)}`) }}>
+                <button className="dropdown-item" onClick={() => { close(); setQuoteOpen(true) }}>
                   <Octicon name="comment" size={16} /> 引用到新议题
                 </button>
               </>
@@ -277,7 +275,7 @@ export function IssuePage({
           <div className="side-section">
             <div className="side-section-head">
               <h3>标签</h3>
-              <a href={`https://github.com/${full}/labels`} target="_blank" rel="noreferrer" aria-label="编辑标签"><Octicon name="gear" size={14} /></a>
+              <button className="side-gear" onClick={() => setLabelsOpen(true)} aria-label="编辑标签"><Octicon name="gear" size={14} /></button>
             </div>
             <div className="side-labels">
               {(issue.labels || []).length > 0
@@ -289,7 +287,7 @@ export function IssuePage({
           <div className="side-section">
             <div className="side-section-head">
               <h3>负责人</h3>
-              <a href={`https://github.com/${full}/issues/${issue.number}/assignees`} target="_blank" rel="noreferrer" aria-label="编辑负责人"><Octicon name="gear" size={14} /></a>
+              <button className="side-gear" onClick={() => setAssigneesOpen(true)} aria-label="编辑负责人"><Octicon name="gear" size={14} /></button>
             </div>
             {(issue.assignees || []).length > 0 ? (
               <div className="side-people">
@@ -303,7 +301,7 @@ export function IssuePage({
           <div className="side-section">
             <div className="side-section-head">
               <h3>里程碑</h3>
-              <a href={`https://github.com/${full}/milestones`} target="_blank" rel="noreferrer" aria-label="编辑里程碑"><Octicon name="gear" size={14} /></a>
+              <button className="side-gear" onClick={() => setMilestoneOpen(true)} aria-label="编辑里程碑"><Octicon name="gear" size={14} /></button>
             </div>
             {issue.milestone ? <span className="side-value">{issue.milestone.title}</span> : <span className="side-empty">暂无里程碑</span>}
           </div>
@@ -338,6 +336,51 @@ export function IssuePage({
             invalidateCache()
             showToast('议题已更新', 'success')
           }}
+        />
+      )}
+
+      {quoteOpen && (
+        <IssueDialog
+          repo={full}
+          mode="create"
+          initialTitle={`引用 #${issue.number}：${issue.title}`}
+          initialBody={`> 引用自 #${issue.number}\n\n`}
+          onClose={() => setQuoteOpen(false)}
+          onSaved={() => {
+            setQuoteOpen(false)
+            invalidateCache()
+            showToast('已创建引用议题', 'success')
+          }}
+        />
+      )}
+
+      {labelsOpen && (
+        <LabelsDialog
+          full={full}
+          number={issue.number}
+          current={issue.labels || []}
+          onClose={() => setLabelsOpen(false)}
+          onSaved={() => { issueState.reload(); showToast('标签已更新', 'success') }}
+        />
+      )}
+
+      {assigneesOpen && (
+        <AssigneesDialog
+          full={full}
+          number={issue.number}
+          current={issue.assignees || []}
+          onClose={() => setAssigneesOpen(false)}
+          onSaved={() => { issueState.reload(); showToast('负责人已更新', 'success') }}
+        />
+      )}
+
+      {milestoneOpen && (
+        <MilestoneDialog
+          full={full}
+          number={issue.number}
+          current={issue.milestone?.number ?? null}
+          onClose={() => setMilestoneOpen(false)}
+          onSaved={() => { issueState.reload(); showToast('里程碑已更新', 'success') }}
         />
       )}
     </div>

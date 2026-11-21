@@ -8,6 +8,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     target: 'es2019',
+    cssMinify: false,
     chunkSizeWarningLimit: 2000,
   },
   server: {

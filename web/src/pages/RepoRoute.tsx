@@ -45,7 +45,7 @@ export function RepoRoute({ route }: { route: Extract<Route, { kind: 'repo' }> }
         if (route.number) return <PullPage repo={repo} owner={owner} repoName={repoName} number={route.number} />
         return <RepoPullsPage repo={repo} owner={owner} repoName={repoName} openCount={prCount.data?.total_count} />
       case 'actions':
-        return <ActionsPage repo={repo} owner={owner} repoName={repoName} />
+        return <ActionsPage repo={repo} owner={owner} repoName={repoName} runId={route.runId} />
       case 'insights':
         return <InsightsPage repo={repo} owner={owner} repoName={repoName} />
       case 'security':

@@ -6,6 +6,7 @@ import { Octicon, type IconName } from '../components/Octicon'
 import { Button, Dialog } from '../components/ui'
 import { useApp } from '../state/AppState'
 import { navigate } from '../lib/router'
+import { openGithubPage } from '../lib/deeplink'
 
 type SettingsTab = 'general' | 'access' | 'branches' | 'tags' | 'actions' | 'webhooks' | 'environments' | 'codespaces' | 'pages' | 'security'
 type DangerKind = 'visibility' | 'archive' | 'delete'
@@ -113,8 +114,10 @@ export function RepoSettingsPage({ repo, owner, repoName }: { repo: Repository; 
     <div className="settings-page">
       <div className="flash settings-readonly">
         <Octicon name="info" size={16} />
-        <span>常规设置、可见性、归档与删除均可直接在应用内完成；访问控制、Webhooks 等高级设置仍在 GitHub 网页。</span>
-        <a href={`https://github.com/${full}/settings`} target="_blank" rel="noreferrer">打开高级设置 <Octicon name="link-external" size={12} /></a>
+        <span>常规设置、可见性、归档与删除均可在应用内完成；访问控制、Webhooks 等高级设置会在应用内网页视图打开。</span>
+        <button className="settings-inline-link" onClick={() => openGithubPage(`https://github.com/${full}/settings`)}>
+          打开高级设置 <Octicon name="arrow-right" size={12} />
+        </button>
       </div>
 
       <div className="settings-layout">
@@ -242,10 +245,10 @@ export function RepoSettingsPage({ repo, owner, repoName }: { repo: Repository; 
               <div className="settings-external">
                 <span className="settings-external-icon"><Octicon name={active.icon} size={28} /></span>
                 <h3>{active.label}</h3>
-                <p>{active.label} 属于高级设置，仍在 github.com 配置 {full}。</p>
-                <a className="btn btn-default" href={`https://github.com/${full}/settings`} target="_blank" rel="noreferrer">
-                  在 GitHub 打开
-                </a>
+                <p>{active.label} 属于高级设置，将在 GitHub Mobile 内置网页视图中打开 {full}。</p>
+                <Button className="btn-default" onClick={() => openGithubPage(`https://github.com/${full}/settings`)}>
+                  在应用内打开
+                </Button>
               </div>
             </div>
           )}

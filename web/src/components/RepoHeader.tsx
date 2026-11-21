@@ -124,10 +124,6 @@ export function RepoHeader({
                 <button className="dropdown-item" onClick={() => { close(); subscription(false) }}>
                   <Octicon name="eye-closed" size={16} /> 忽略 / 取消关注
                 </button>
-                <div className="dropdown-divider" />
-                <a className="dropdown-item" href={`https://github.com/${owner}/${repoName}/subscription`} target="_blank" rel="noreferrer" onClick={close}>
-                  <Octicon name="gear" size={16} /> 在 GitHub 管理
-                </a>
               </>
             )}
           </Dropdown>

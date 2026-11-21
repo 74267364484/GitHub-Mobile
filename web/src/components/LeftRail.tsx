@@ -65,6 +65,7 @@ export function LeftRail() {
           <RailLink href="#/pulls" icon="git-pull-request" label="拉取请求" active={route.kind === 'global-pulls'} onClick={close} />
           <RailLink href="#/notifications" icon="bell" label="通知" active={route.kind === 'notifications'} count={unreadCount} onClick={close} />
           <RailLink href="#/explore" icon="telescope" label="探索" active={route.kind === 'explore'} onClick={close} />
+          <RailLink href="#/gists" icon="code" label="Gist" active={route.kind === 'gists' || route.kind === 'gist'} onClick={close} />
           <RailLink href="#/profile" icon="person" label="个人主页" active={route.kind === 'profile'} onClick={close} />
         </nav>
 
@@ -164,7 +165,7 @@ export function LeftRail() {
             </a>
           </div>
           <div className="rail-version">
-            <span>GitHub Mobile v1.5.0</span>
+            <span>GitHub Mobile v1.6.0</span>
             <span>{defaultRepo ? `· ${defaultRepo.split('/')[1]}` : ''}</span>
           </div>
         </div>

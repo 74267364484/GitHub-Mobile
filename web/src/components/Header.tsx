@@ -47,7 +47,7 @@ export function Header() {
         <nav className="header-nav" aria-label="全局导航">
           <a className={`header-nav-item ${active('global-pulls') ? 'active' : ''}`} href="#/pulls">拉取请求</a>
           <a className={`header-nav-item ${active('global-issues') ? 'active' : ''}`} href="#/issues">议题</a>
-          <a className="header-nav-item" href="https://github.com/marketplace" target="_blank" rel="noreferrer">市场</a>
+          <a className={`header-nav-item ${active('gists') ? 'active' : ''}`} href="#/gists">Gist</a>
           <a className={`header-nav-item ${active('explore') ? 'active' : ''}`} href="#/explore">探索</a>
         </nav>
 
@@ -86,12 +86,23 @@ export function Header() {
                 >
                   <Octicon name="repo" size={16} /> 新建仓库
                 </button>
-                <a className="dropdown-item" href="https://gist.github.com/" target="_blank" rel="noreferrer" onClick={close}>
+                <a className="dropdown-item" href="#/gists?new=1" onClick={close}>
                   <Octicon name="code" size={16} /> 新建 Gist
                 </a>
-                <a className="dropdown-item" href="https://github.com/new/import" target="_blank" rel="noreferrer" onClick={close}>
-                  <Octicon name="upload" size={16} /> 导入仓库
-                </a>
+                <button
+                  className="dropdown-item"
+                  onClick={() => {
+                    close()
+                    if (!config?.hasToken) {
+                      showToast('登录 GitHub 后才能新建仓库', 'info')
+                      navigate('/settings')
+                      return
+                    }
+                    navigate('/repos?new=1')
+                  }}
+                >
+                  <Octicon name="upload" size={16} /> 导入或新建仓库
+                </button>
                 <div className="dropdown-divider" />
                 <a className="dropdown-item" href="#/settings" onClick={close}>
                   <Octicon name="gear" size={16} /> GitHub Mobile 设置
@@ -176,7 +187,7 @@ export function Header() {
                     <Octicon name="sign-out" size={16} /> 退出登录
                   </button>
                 )}
-                <div className="dropdown-version">GitHub Mobile v1.5.0</div>
+                <div className="dropdown-version">GitHub Mobile v1.6.0</div>
               </>
             )}
           </Dropdown>

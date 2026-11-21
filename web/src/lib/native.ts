@@ -11,6 +11,9 @@ export interface NativeBridge {
   fetchImage(id: string, url: string): void
   fetchText(id: string, url: string): void
   openExternal(url: string): void
+  openWebSheet?(url: string): void
+  openLinkSettings?(): void
+  markReady?(): void
   startDownload?(id: string, url: string, filename: string, accept: string): void
   getDownloadDir?(): string
   chooseDownloadDir?(id: string): void
@@ -22,6 +25,7 @@ declare global {
     OctoDeck?: NativeBridge
     __octoDeckResolve?: (id: string, payload: string, error: string) => void
     __octoDownloadProgress?: (id: string, payload: string) => void
+    __octoOpenUrl?: (url: string) => void
   }
 }
 
@@ -62,6 +66,10 @@ export function initNativeBridge(): void {
     } catch {}
     window.dispatchEvent(new CustomEvent('octo-download', { detail: { id, ...detail } }))
   }
+  window.__octoOpenUrl = (url: string) => {
+    window.dispatchEvent(new CustomEvent('octo-open-url', { detail: url }))
+  }
+  window.OctoDeck?.markReady?.()
 }
 
 function callAsync<T>(invoke: (id: string) => void, timeoutMs = 45000): Promise<T> {
@@ -154,4 +162,14 @@ export function nativeDownloadDir(): DownloadDirInfo | null {
 
 export function nativeChooseDownloadDir(): Promise<DownloadDirInfo> {
   return callAsync<DownloadDirInfo>((id) => window.OctoDeck!.chooseDownloadDir!(id), 120000)
+}
+
+export function nativeOpenWebSheet(url: string): void {
+  if (!isNative()) return
+  window.OctoDeck?.openWebSheet?.(url)
+}
+
+export function nativeOpenLinkSettings(): void {
+  if (!isNative()) return
+  window.OctoDeck?.openLinkSettings?.()
 }

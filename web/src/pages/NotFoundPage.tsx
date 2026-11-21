@@ -12,7 +12,7 @@ export function NotFoundPage({ title = '页面不存在' }: { title?: string }) 
         </p>
         <div className="notfound-actions">
           <ButtonLink href="#/" variant="primary" icon="home">返回首页</ButtonLink>
-          <ButtonLink href="https://github.com" external icon="mark-github">打开 github.com</ButtonLink>
+          <ButtonLink href="#/search?q=&type=repositories" icon="search">在应用内搜索</ButtonLink>
         </div>
         <div className="notfound-hint">
           <Octicon name="info" size={16} />

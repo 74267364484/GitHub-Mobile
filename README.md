@@ -4,27 +4,49 @@
 >
 > 独立第三方项目，与 GitHub, Inc. 无隶属关系。GitHub、Octocat 是其商标；本项目的名称仅用于说明兼容目标，不代表官方应用。
 
-![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.5.0-black)
+![Android](https://img.shields.io/badge/Android-26%2B-1F883D) ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-A97BFF) ![React](https://img.shields.io/badge/React-18-0969DA) ![APK](https://img.shields.io/badge/APK-GitHub_Mobile_1.6.0-black)
 
 ## 截图
 
-| Releases · 下载区置顶、说明可折叠 | Actions 运行详情（作业/步骤） |
+| Actions · 模板与运行（应用内） | 深链与第三方授权 |
 |---|---|
+| ![](docs/screenshots/v16-actions.png) | ![](docs/screenshots/v16-oauth.png) |
+| **Gist（应用内创建/查看）** | **设置 · 链接与授权** |
+| ![](docs/screenshots/v16-gists.png) | ![](docs/screenshots/v16-links.png) |
+| **Releases · 下载区置顶、说明可折叠** | **Actions 运行详情（作业/步骤）** |
 | ![](docs/screenshots/v15-releases.png) | ![](docs/screenshots/v15-run-detail.png) |
-| **项目（GraphQL，应用内）** | **讨论（列表/展开/发布）** |
-| ![](docs/screenshots/v15-projects.png) | ![](docs/screenshots/v15-discussions.png) |
-| **安全警报（应用内）** | **更改下载保存位置** |
-| ![](docs/screenshots/v15-security.png) | ![](docs/screenshots/v15-download-dir.png) |
 
 ---
 
 ## 下载
 
-- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.5.0.apk`
-- 大小：4,214,433 字节（约 4.0 MB），debug 签名，可直接侧载
-- SHA-256：`22f1232a0949d175c38dd77114808671bf7172b6d1126dd9c380290b202815cf`
+- 最新 APK：本仓库 **Releases** 页面的 `GitHubMobile-1.6.0.apk`
+- 大小：4,251,852 字节（约 4.1 MB），debug 签名，可直接侧载
+- SHA-256：`a76715e2a165cc686dc588eb753327da58480fb4fe78caa243a5ddfec2619af6`
 
 ---
+
+## v1.6.0 更新
+
+- **工作流彻底应用内**：Actions 页移除全部 GitHub 外链；顶部改为「刷新 / 新建工作流」，模板卡片直接打开 `.github/workflows/` 文件编辑器，提交后即可运行；运行详情保留重跑、取消、下载日志，并新增「复制运行链接」。
+- **洞察彻底应用内**：社区标准检查项的「添加」直接创建 README、LICENSE（MIT）、CONTRIBUTING、CODE_OF_CONDUCT、Issue/PR 模板与 SECURITY.md；「描述」跳转应用内仓库设置，不再打开 `github.com/{owner}/{repo}/community`。
+- **GitHub 深链接管**：
+  - 注册 `https://github.com/*`、`https://gist.github.com/*`、`githubmobile://*` 与文本分享（`ACTION_SEND`）。
+  - 从其他应用打开 GitHub 链接会直接进入对应仓库 / 议题 / PR / Actions / Releases / 用户 / 搜索 / Gist 页面。
+  - 浏览器地址栏直接输入网址无法被第三方应用拦截，这是 Android 系统限制；可将 GitHub 链接分享到 GitHub Mobile，或在系统设置中把 GitHub 链接的默认打开方式设为 GitHub Mobile。
+- **第三方账号绑定在应用内完成**：
+  - 收到 `github.com/login/oauth/authorize` 时，先显示权限确认对话框（client_id、scope、回调地址、state），确认后在内置网页视图打开 GitHub 授权页。
+  - 授权完成回到 `githubmobile://oauth/callback` 时，应用内展示 code 与 state，可一键复制；不会保存任何 `client_secret`。
+  - 对方使用自定义 scheme 回调时，会询问是否把授权结果交回原应用。
+- **应用内 GitHub 网页视图**：Token 管理、登录、Marketplace 等没有原生页面的 GitHub 页面也在应用内网页视图打开，不再跳出应用；视图不暴露 JS 桥接，只允许 GitHub 域名。
+- **所有 GitHub 链接应用内路由**：README、Issue/PR 正文、搜索结果里的 `github.com` 链接会转换为应用内路由，不再打开系统浏览器；仓库主页、博客等非 GitHub 外链仍交给浏览器。
+- **补齐常用功能**：
+  - Gist：列表、详情、创建（公开/私密），`gist.github.com` 深链直达；
+  - 议题/PR：标签、负责人、里程碑在应用内编辑；
+  - 提交：文件历史、提交详情（变更文件与增删行数）在应用内查看；
+  - 个人主页：编辑资料、关注/取消关注、关注者/正在关注列表；
+  - 通知：全部标为已读、点击即标记已读；
+  - 仓库：星标/关注用户列表、内建议题（报告仓库）。
 
 ## v1.5.0 更新
 
@@ -190,7 +212,7 @@ cd web && npm run dev                # http://127.0.0.1:5173
 
 ```bash
 ./scripts/build-apk.sh
-# 产物：GitHubMobile-1.5.0.apk（debug 签名，可直接侧载）
+# 产物：GitHubMobile-1.6.0.apk（debug 签名，可直接侧载）
 ```
 
 如果 JDK / SDK 不在默认路径：
@@ -233,7 +255,7 @@ OCTODECK_JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./scripts/bu
 ### Android
 
 - `:app:testDebugUnitTest`：7 个 JVM 测试全部通过（Host 映射解析、禁用回退、官方直连、自定义合法/非法 IP、状态 JSON 解析与损坏回退）。
-- `:app:assembleDebug`：`versionCode 6`、`versionName 1.5.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
+- `:app:assembleDebug`：`versionCode 7`、`versionName 1.6.0`、`application-label 'GitHub Mobile'`、`minSdk 26`、`targetSdk 35`。
 - 原生下载改为 SAF：`startDownload` 先交给 MainActivity 弹出 `ACTION_CREATE_DOCUMENT`，用户选定 Uri 后由 OkHttp 写入；取消则回传 `cancelled` 并移除托盘项。
 - 模拟器无 KVM，只能 TCG 软件模拟，系统 UI 会 ANR；已验证安装、首次启动直接进入公开浏览、应用名为 `GitHub Mobile`。
 - Wiki 在 APK 中通过原生桥读取 `raw.githubusercontent.com/wiki/`，不依赖本地 Node 服务。

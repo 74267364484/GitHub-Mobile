@@ -62,11 +62,11 @@ export function ContributionGraph({
         </span>
         {title && <span className="contrib-note">{title}</span>}
         <span className="contrib-head-spacer" />
-        <a className="contrib-settings" href="https://github.com/settings/profile" target="_blank" rel="noreferrer" title="Contribution settings">
+        <span className="contrib-settings" title="贡献统计来自 GitHub">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm0 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm0 2a.75.75 0 0 1 .75.75v3.19l2.72 1.57a.75.75 0 0 1-.75 1.3L7.25 8.3A.75.75 0 0 1 7.25 7V3.75A.75.75 0 0 1 8 3.5Z" />
           </svg>
-        </a>
+        </span>
       </div>
 
       <div className="contrib-scroll">
@@ -104,9 +104,9 @@ export function ContributionGraph({
       </div>
 
       <div className="contrib-foot">
-        <a className="contrib-link" href="https://docs.github.com/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-settings-on-your-profile" target="_blank" rel="noreferrer">
+        <span className="contrib-link" title="GitHub 根据提交、议题和拉取请求计算贡献">
           如何计算贡献
-        </a>
+        </span>
         <span className="contrib-legend">
           少
           {[0, 1, 2, 3, 4].map((i) => <i key={i} className={`contrib-cell level-${i}`} />)}

@@ -104,10 +104,8 @@ export function FileDiff({ file, owner, repo, branch }: { file: PRFile; owner: s
         </span>
         <a
           className="diff-file-link"
-          href={`https://github.com/${owner}/${repo}/blob/${encodeURIComponent(branch)}/${file.filename.split('/').map(encodeURIComponent).join('/')}`}
-          target="_blank"
-          rel="noreferrer"
-          title="查看文件"
+          href={`#/${owner}/${repo}/blob/${encodeURIComponent(branch)}/${file.filename.split('/').map(encodeURIComponent).join('/')}`}
+          title="在应用内查看文件"
         >
           <Octicon name="file" size={16} />
         </a>

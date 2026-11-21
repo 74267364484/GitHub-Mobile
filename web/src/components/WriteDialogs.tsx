@@ -103,16 +103,18 @@ export function NewRepoDialog({
 }
 
 export function IssueDialog({
-  repo, mode, issue, onClose, onSaved,
+  repo, mode, issue, initialTitle, initialBody, onClose, onSaved,
 }: {
   repo: string
   mode: 'create' | 'edit'
   issue?: Issue | PullRequest | null
+  initialTitle?: string
+  initialBody?: string
   onClose: () => void
   onSaved: (issue: Issue) => void
 }) {
-  const [title, setTitle] = useState(issue?.title || '')
-  const [body, setBody] = useState(issue?.body || '')
+  const [title, setTitle] = useState(issue?.title || initialTitle || '')
+  const [body, setBody] = useState(issue?.body || initialBody || '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 

@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Repository, Workflow, WorkflowRun } from '../types'
 import { useApi } from '../lib/hooks'
-import { gh, invalidateCache, openExternal } from '../lib/api'
+import { gh, invalidateCache } from '../lib/api'
 import { startDownload } from '../lib/downloads'
 import { useApp } from '../state/AppState'
 import { Octicon } from '../components/Octicon'
 import { Avatar } from '../components/Avatar'
 import { Button, Dialog, Skeleton } from '../components/ui'
+import { FileDialog } from '../components/WriteDialogs'
+import { copyText } from '../lib/clipboard'
+import { navigate } from '../lib/router'
 import { firstLine, formatDuration, timeAgo } from '../lib/format'
 
 interface RunStep {
@@ -40,19 +43,103 @@ function statusIcon(run: WorkflowRun) {
   }
 }
 
+const SIMPLE_YAML = `name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run a one-line script
+        run: echo "Hello, GitHub Actions!"
+`
+
+const NODE_YAML = `name: Node.js CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js \${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: \${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm test
+`
+
+const PYTHON_YAML = `name: Python CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: \${{ matrix.python-version }}
+      - run: pip install -r requirements.txt
+      - run: pytest
+`
+
+const ANDROID_YAML = `name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+`
+
 const STARTERS = [
-  { name: '简单工作流', icon: 'zap' as const, file: 'simple.yml', desc: '从空白工作流开始' },
-  { name: 'Node.js', icon: 'code' as const, file: 'node.js.yml', desc: '构建并测试 Node.js 项目' },
-  { name: 'Python', icon: 'code' as const, file: 'python.yml', desc: '构建并测试 Python 项目' },
-  { name: 'Android', icon: 'package' as const, file: 'android.yml', desc: '构建并测试 Android 应用' },
+  { name: '简单工作流', icon: 'zap' as const, file: 'ci.yml', desc: '从空白工作流开始', content: SIMPLE_YAML },
+  { name: 'Node.js', icon: 'code' as const, file: 'node.js.yml', desc: '构建并测试 Node.js 项目', content: NODE_YAML },
+  { name: 'Python', icon: 'code' as const, file: 'python.yml', desc: '构建并测试 Python 项目', content: PYTHON_YAML },
+  { name: 'Android', icon: 'package' as const, file: 'android.yml', desc: '构建并测试 Android 应用', content: ANDROID_YAML },
 ]
 
+type Starter = typeof STARTERS[number]
+
 export function ActionsPage({
-  repo, owner, repoName,
+  repo, owner, repoName, runId,
 }: {
   repo: Repository
   owner: string
   repoName: string
+  runId?: number
 }) {
   const full = `${owner}/${repoName}`
   const branch = repo.default_branch || 'main'
@@ -60,6 +147,8 @@ export function ActionsPage({
   const [busyRun, setBusyRun] = useState<number | null>(null)
   const [selected, setSelected] = useState<WorkflowRun | null>(null)
   const [workflowId, setWorkflowId] = useState<number | null>(null)
+  const [starter, setStarter] = useState<Starter | null>(null)
+  const [newOpen, setNewOpen] = useState(false)
   const workflowsState = useApi<{ workflows: Workflow[]; total_count: number }>(`/repos/${full}/actions/workflows`)
   const runsState = useApi<{ workflow_runs: WorkflowRun[]; total_count: number }>(
     workflowId
@@ -69,11 +158,36 @@ export function ActionsPage({
   const jobsState = useApi<{ jobs: RunJob[] }>(
     selected ? `/repos/${full}/actions/runs/${selected.id}/jobs?per_page=100` : null,
   )
+  const linkedRun = useApi<WorkflowRun>(runId ? `/repos/${full}/actions/runs/${runId}` : null)
+
+  useEffect(() => {
+    if (linkedRun.data) setSelected(linkedRun.data)
+  }, [linkedRun.data])
 
   const workflows = workflowsState.data?.workflows || []
   const runs = runsState.data?.workflow_runs || []
   const current = workflows.find((w) => w.id === workflowId)
   const actionsDisabled = Boolean(workflowsState.error)
+
+  const requireLogin = (message: string) => {
+    if (config?.hasToken) return true
+    showToast(message, 'info')
+    navigate('/settings')
+    return false
+  }
+
+  const openStarter = (s: Starter) => {
+    if (!requireLogin('登录 GitHub 后才能创建工作流')) return
+    setStarter(s)
+  }
+
+  const onWorkflowSaved = () => {
+    setStarter(null)
+    setNewOpen(false)
+    workflowsState.reload()
+    runsState.reload()
+    showToast('工作流文件已提交，Actions 会在下次推送后运行', 'success')
+  }
 
   const runAction = async (runId: number, action: 'rerun' | 'cancel') => {
     if (!config?.hasToken) {
@@ -116,19 +230,26 @@ export function ActionsPage({
             <span>{w.name}</span>
           </button>
         ))}
-        {!workflowsState.loading && workflows.length > 0 && (
-          <a className="actions-side-manage" href={`https://github.com/${full}/actions`} target="_blank" rel="noreferrer">
-            管理工作流 <Octicon name="link-external" size={12} />
-          </a>
-        )}
+        <button className="actions-side-manage" onClick={() => setNewOpen(true)}>
+          <Octicon name="plus" size={14} /> 新建工作流
+        </button>
       </aside>
 
       <div className="actions-main">
         <div className="actions-head">
           <h2>{current ? current.name : '全部工作流'}</h2>
-          <a className="btn btn-sm btn-default" href={`https://github.com/${full}/actions`} target="_blank" rel="noreferrer">
-            <Octicon name="link-external" size={14} /> 在 GitHub 打开
-          </a>
+          <div className="actions-head-actions">
+            <Button
+              size="sm"
+              icon="sync"
+              onClick={() => { workflowsState.reload(); runsState.reload(); jobsState.reload() }}
+            >
+              刷新
+            </Button>
+            <Button size="sm" variant="primary" icon="plus" onClick={() => setNewOpen(true)}>
+              新建工作流
+            </Button>
+          </div>
         </div>
 
         {runsState.loading && (
@@ -216,22 +337,16 @@ export function ActionsPage({
             </p>
             <div className="starter-grid">
               {STARTERS.map((s) => (
-                <a
-                  key={s.name}
-                  className="starter-card"
-                  href={`https://github.com/${full}/new/${encodeURIComponent(branch)}?filename=.github/workflows/${s.file}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <button key={s.name} className="starter-card" onClick={() => openStarter(s)}>
                   <span className="starter-icon"><Octicon name={s.icon} size={18} /></span>
                   <span className="starter-name">{s.name}</span>
                   <span className="starter-desc">{s.desc}</span>
-                </a>
+                </button>
               ))}
             </div>
-            <a className="actions-docs" href="https://docs.github.com/actions" target="_blank" rel="noreferrer">
-              了解 GitHub Actions <Octicon name="arrow-right" size={14} />
-            </a>
+            <p className="actions-docs">
+              模板会直接提交到 <code>.github/workflows/</code>，无需离开应用。
+            </p>
           </div>
         )}
       </div>
@@ -244,7 +359,16 @@ export function ActionsPage({
           width={720}
           footer={(
             <div className="dialog-actions">
-              <Button size="sm" icon="link-external" onClick={() => openExternal(selected.html_url)}>在 GitHub 打开</Button>
+              <Button
+                size="sm"
+                icon="link"
+                onClick={async () => {
+                  await copyText(selected.html_url)
+                  showToast('运行链接已复制', 'success')
+                }}
+              >
+                复制运行链接
+              </Button>
               {selected.status === 'in_progress' || selected.status === 'queued' ? (
                 <Button size="sm" icon="stop" onClick={() => runAction(selected.id, 'cancel')} disabled={busyRun === selected.id}>
                   取消运行
@@ -287,6 +411,18 @@ export function ActionsPage({
             </div>
           )}
         </Dialog>
+      )}
+
+      {(starter || newOpen) && (
+        <FileDialog
+          repo={full}
+          branch={branch}
+          mode="create"
+          path={`${starter ? `.github/workflows/${starter.file}` : '.github/workflows/ci.yml'}`}
+          initialContent={starter ? starter.content : SIMPLE_YAML}
+          onClose={() => { setStarter(null); setNewOpen(false) }}
+          onSaved={onWorkflowSaved}
+        />
       )}
     </div>
   )

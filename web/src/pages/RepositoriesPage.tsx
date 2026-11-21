@@ -2,16 +2,29 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../state/AppState'
 import { useDocumentTitle } from '../lib/hooks'
 import { Octicon } from '../components/Octicon'
-import { ButtonLink, EmptyState } from '../components/ui'
+import { Button, EmptyState } from '../components/ui'
+import { NewRepoDialog } from '../components/WriteDialogs'
+import { useQuery, navigate } from '../lib/router'
 import { compact, languageColor, timeAgo } from '../lib/format'
 
 export function RepositoriesPage() {
-  const { repos, user } = useApp()
+  const { repos, user, config, showToast, reload } = useApp()
+  const qs = useQuery()
   useDocumentTitle('仓库')
   const [q, setQ] = useState('')
   const [type, setType] = useState('all')
   const [language, setLanguage] = useState('all')
   const [sort, setSort] = useState('updated')
+  const [newOpen, setNewOpen] = useState(qs.get('new') === '1')
+
+  const openCreate = () => {
+    if (!config?.hasToken) {
+      showToast('登录 GitHub 后才能新建仓库', 'info')
+      navigate('/settings')
+      return
+    }
+    setNewOpen(true)
+  }
 
   const languages = useMemo(
     () => Array.from(new Set(repos.map((r) => r.language).filter(Boolean))) as string[],
@@ -42,9 +55,9 @@ export function RepositoriesPage() {
     <div className="repos-page">
       <div className="page-heading">
         <h1>仓库 <span className="page-count">{repos.length}</span></h1>
-        <ButtonLink href="https://github.com/new" external variant="primary" size="sm" icon="repo">
+        <Button variant="primary" size="sm" icon="repo" onClick={openCreate}>
           新建仓库
-        </ButtonLink>
+        </Button>
       </div>
 
       <div className="repo-filters">
@@ -88,12 +101,12 @@ export function RepositoriesPage() {
                     <i className="lang-dot" style={{ background: languageColor(r.language) }} /> {r.language}
                   </span>
                 )}
-                <a className="repo-meta-item" href={`https://github.com/${r.full_name}/stargazers`} target="_blank" rel="noreferrer">
+                <span className="repo-meta-item">
                   <Octicon name="star" size={14} /> {compact(r.stargazers_count)}
-                </a>
-                <a className="repo-meta-item" href={`https://github.com/${r.full_name}/forks`} target="_blank" rel="noreferrer">
+                </span>
+                <span className="repo-meta-item">
                   <Octicon name="repo-forked" size={14} /> {compact(r.forks_count)}
-                </a>
+                </span>
                 <span className="repo-meta-item">更新于 {timeAgo(r.updated_at)}</span>
               </div>
             </div>
@@ -102,10 +115,22 @@ export function RepositoriesPage() {
       ) : (
         <div className="card blankslate-wrap">
           <EmptyState icon="repo" title="没有找到仓库">
-            <p>换个搜索条件，或到 GitHub 新建仓库。</p>
-            <ButtonLink href="https://github.com/new" external variant="primary" icon="plus">新建仓库</ButtonLink>
+            <p>换个搜索条件，或在应用内新建仓库。</p>
+            <Button variant="primary" icon="plus" onClick={openCreate}>新建仓库</Button>
           </EmptyState>
         </div>
+      )}
+
+      {newOpen && (
+        <NewRepoDialog
+          onClose={() => setNewOpen(false)}
+          onCreated={(repo) => {
+            setNewOpen(false)
+            reload()
+            showToast(`仓库 ${repo.full_name} 已创建`, 'success')
+            navigate(`/${repo.owner.login}/${repo.name}`)
+          }}
+        />
       )}
     </div>
   )

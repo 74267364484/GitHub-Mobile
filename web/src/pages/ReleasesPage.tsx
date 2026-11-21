@@ -8,6 +8,7 @@ import { NewReleaseDialog } from '../components/WriteDialogs'
 import { Button, ButtonLink, EmptyState, Skeleton } from '../components/ui'
 import { formatBytes, formatDate, timeAgo } from '../lib/format'
 import { startDownload } from '../lib/downloads'
+import { copyText } from '../lib/clipboard'
 import { useApp } from '../state/AppState'
 import { navigate } from '../lib/router'
 
@@ -106,6 +107,7 @@ function ReleaseCard({
   defaultBranch: string
 }) {
   const [expanded, setExpanded] = useState(false)
+  const { showToast } = useApp()
   const assetsId = `release-${r.id}-assets`
   const scrollToDownloads = () => {
     document.getElementById(assetsId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -123,9 +125,17 @@ function ReleaseCard({
           {r.prerelease && <span className="pre-badge">预发行</span>}
           {r.draft && <span className="draft-badge">草稿</span>}
         </div>
-        <a className="release-external" href={r.html_url} target="_blank" rel="noreferrer" aria-label="在 GitHub 打开发行版">
-          <Octicon name="link-external" size={16} />
-        </a>
+        <button
+          className="release-external"
+          title="复制发行版链接"
+          aria-label="复制发行版链接"
+          onClick={async () => {
+            await copyText(r.html_url)
+            showToast('发行版链接已复制', 'success')
+          }}
+        >
+          <Octicon name="link" size={16} />
+        </button>
       </div>
       <div className="release-card-meta">
         {r.author && (

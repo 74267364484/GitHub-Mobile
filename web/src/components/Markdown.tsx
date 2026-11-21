@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { parseDeepLink } from '../lib/deeplink'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/core'
@@ -146,14 +147,27 @@ export function Markdown({
       if (href.startsWith('#')) return
       let resolved = href
       if (owner && repo && branch) resolved = resolveRelative(href, owner, repo, branch, baseDir)
-      if (resolved.startsWith('https://github.com/')) {
+      if (resolved.startsWith('https://raw.githubusercontent.com/')) {
         const u = new URL(resolved)
-        const prefix = `/${owner}/${repo}`
-        if (owner && repo && u.pathname.startsWith(prefix + '/')) {
-          a.href = '#' + u.pathname + u.search + u.hash
+        const parts = u.pathname.split('/').filter(Boolean)
+        if (parts.length >= 4) {
+          const [o, r, br, ...filePath] = parts
+          a.href = `#/${encodeURIComponent(o)}/${encodeURIComponent(r)}/blob/${encodeURIComponent(br)}/${filePath.map(encodeURIComponent).join('/')}`
           a.removeAttribute('target')
           return
         }
+      }
+      if (resolved.startsWith('https://github.com/') || resolved.startsWith('https://gist.github.com/') || resolved.startsWith('https://www.github.com/')) {
+        const action = parseDeepLink(resolved)
+        if (action.kind === 'route') {
+          a.href = `#${action.href}`
+          a.removeAttribute('target')
+          return
+        }
+        a.href = resolved
+        a.removeAttribute('target')
+        a.rel = 'nofollow noreferrer noopener'
+        return
       }
       a.href = resolved
       a.target = '_blank'

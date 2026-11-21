@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import type { Notification } from '../types'
 import { useApi, useDocumentTitle } from '../lib/hooks'
 import { Octicon, type IconName } from '../components/Octicon'
-import { ButtonLink, Skeleton } from '../components/ui'
-import { repoFromUrl } from '../lib/api'
+import { Button, Skeleton } from '../components/ui'
+import { gh, invalidateCache, repoFromUrl } from '../lib/api'
+import { useApp } from '../state/AppState'
 import { timeAgo } from '../lib/format'
 
 const REASONS: Record<string, string> = {
@@ -38,12 +39,14 @@ function subjectMeta(n: Notification): { icon: IconName; href: string; external?
     return { icon, href: `#/${m[1]}/${kind}/${m[3]}` }
   }
   const repo = n.repository?.full_name
-  return { icon, href: repo ? `#/${repo}` : 'https://github.com/notifications', external: !repo }
+  return { icon, href: repo ? `#/${repo}` : '#/notifications' }
 }
 
 export function NotificationsPage() {
   useDocumentTitle('通知')
   const state = useApi<Notification[]>('/notifications?all=false&per_page=50')
+  const { config, showToast } = useApp()
+  const [marking, setMarking] = useState(false)
   const [tab, setTab] = useState<'all' | 'unread'>('all')
   const list = useMemo(() => {
     const data = state.data || []
@@ -62,11 +65,40 @@ export function NotificationsPage() {
 
   const unread = (state.data || []).filter((n) => n.unread).length
 
+  const markAllRead = async () => {
+    if (!config?.hasToken || marking) return
+    setMarking(true)
+    try {
+      await gh('/notifications', { method: 'PUT', body: { read: true } })
+      invalidateCache()
+      state.reload()
+      showToast('全部通知已标为已读', 'success')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+    } finally {
+      setMarking(false)
+    }
+  }
+
+  const markRead = (id: string) => {
+    if (!config?.hasToken) return
+    gh(`/notifications/threads/${id}`, { method: 'PATCH' })
+      .then(() => invalidateCache())
+      .catch(() => {})
+  }
+
   return (
     <div className="notifications-page">
       <div className="page-heading">
         <h1>通知</h1>
-        <ButtonLink href="https://github.com/notifications" external size="sm" icon="link-external">在 GitHub 打开</ButtonLink>
+        <Button
+          size="sm"
+          icon="check"
+          onClick={markAllRead}
+          disabled={!config?.hasToken || !unread || marking}
+        >
+          {marking ? '处理中…' : '全部标为已读'}
+        </Button>
       </div>
 
       <div className="list-toolbar">
@@ -99,7 +131,7 @@ export function NotificationsPage() {
                     className={`notification-row ${n.unread ? 'unread' : ''}`}
                     key={n.id}
                     href={meta.href}
-                    {...(meta.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                    onClick={() => { if (n.unread) markRead(n.id) }}
                   >
                     <span className={`notification-icon ${n.unread ? 'unread' : ''}`}>
                       <Octicon name={meta.icon} size={16} />

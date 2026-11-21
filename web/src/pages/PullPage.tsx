@@ -2,18 +2,21 @@ import { useMemo, useState } from 'react'
 import type { IssueComment, PRFile, PullRequest, Repository, GitCommit } from '../types'
 import { useApi, useDocumentTitle } from '../lib/hooks'
 import { useApp } from '../state/AppState'
-import { gh, invalidateCache, openExternal } from '../lib/api'
+import { gh, invalidateCache } from '../lib/api'
+import { copyText } from '../lib/clipboard'
 import { Octicon } from '../components/Octicon'
 import { IssueDialog } from '../components/WriteDialogs'
+import { LabelsDialog, AssigneesDialog } from '../components/IssueMetaDialogs'
+import { CommitDialog } from '../components/CommitDialogs'
 import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
 import { TimelineCard } from './IssuePage'
 import { FileDiff } from '../components/DiffView'
-import { Button, ButtonLink, Dropdown, EmptyState, LabelPill, Skeleton, StateBadge } from '../components/ui'
+import { Button, Dropdown, EmptyState, LabelPill, Skeleton, StateBadge } from '../components/ui'
 import { NotFoundPage } from './NotFoundPage'
 import { formatBytes, timeAgo, firstLine } from '../lib/format'
 import { startDownload } from '../lib/downloads'
-import { repoHref } from '../lib/router'
+import { navigate, repoHref } from '../lib/router'
 
 type Tab = 'conversation' | 'commits' | 'checks' | 'files'
 
@@ -36,6 +39,9 @@ export function PullPage({
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [labelsOpen, setLabelsOpen] = useState(false)
+  const [assigneesOpen, setAssigneesOpen] = useState(false)
+  const [commitSha, setCommitSha] = useState<string | null>(null)
   const [acting, setActing] = useState(false)
   const [mergeMethod, setMergeMethod] = useState<'merge' | 'squash' | 'rebase'>('merge')
 
@@ -139,8 +145,8 @@ export function PullPage({
           <Dropdown width={220} trigger={<Button size="sm" icon="kebab-horizontal" aria-label="拉取请求操作" />}>
             {(close) => (
               <>
-                <button className="dropdown-item" onClick={() => { close(); openExternal(`https://github.com/${full}/pull/${pr.number}`) }}>
-                  <Octicon name="link-external" size={16} /> 在 GitHub 打开
+                <button className="dropdown-item" onClick={async () => { close(); await copyText(location.href); showToast('拉取请求链接已复制', 'success') }}>
+                  <Octicon name="link" size={16} /> 复制链接
                 </button>
                 <button className="dropdown-item" onClick={() => { close(); startDownload({ kind: 'pr-diff', repo: full, number: pr.number }) }}>
                   <Octicon name="download" size={16} /> 下载 Diff（.diff）
@@ -148,9 +154,6 @@ export function PullPage({
                 <button className="dropdown-item" onClick={() => { close(); startDownload({ kind: 'pr-patch', repo: full, number: pr.number }) }}>
                   <Octicon name="download" size={16} /> 下载补丁（.patch）
                 </button>
-                <a className="dropdown-item" href={`#${repoHref(owner, repoName, `/pulls/${pr.number}`)}`} onClick={close}>
-                  <Octicon name="link" size={16} /> 复制链接
-                </a>
               </>
             )}
           </Dropdown>
@@ -273,9 +276,9 @@ export function PullPage({
                 <div className="commit-row" key={c.sha}>
                   <Avatar user={c.author || undefined} login={c.commit.author?.name} size={24} />
                   <div className="commit-main">
-                    <a className="commit-msg" href={`https://github.com/${full}/commit/${c.sha}`} target="_blank" rel="noreferrer">
+                    <button className="commit-msg commit-msg-button" onClick={() => setCommitSha(c.sha)}>
                       {firstLine(c.commit.message, 100)}
-                    </a>
+                    </button>
                     <div className="commit-meta">
                       {c.author?.login || c.commit.author?.name} · {timeAgo(c.commit.author?.date)}
                     </div>
@@ -292,10 +295,10 @@ export function PullPage({
           {tab === 'checks' && (
             <div className="card blankslate-wrap">
               <EmptyState icon="check-circle-fill" title="此拉取请求没有检查结果">
-                <p>状态检查由 GitHub Actions 配置，请前往 GitHub 查看详情。</p>
-                <ButtonLink href={`https://github.com/${full}/pull/${pr.number}/checks`} external icon="link-external">
-                  在 GitHub 查看检查
-                </ButtonLink>
+                <p>状态检查由 GitHub Actions 配置；可以直接在应用内查看该仓库的运行记录。</p>
+                <Button icon="play" onClick={() => navigate(repoHref(owner, repoName, '/actions'))}>
+                  查看 Actions
+                </Button>
               </EmptyState>
             </div>
           )}
@@ -327,11 +330,14 @@ export function PullPage({
 
         <aside className="issue-side">
           <div className="side-section">
-            <div className="side-section-head"><h3>审查者</h3><a href={`https://github.com/${full}/pull/${pr.number}`} target="_blank" rel="noreferrer"><Octicon name="gear" size={14} /></a></div>
+            <div className="side-section-head"><h3>审查者</h3></div>
             <span className="side-empty">暂无审查</span>
           </div>
           <div className="side-section">
-            <div className="side-section-head"><h3>负责人</h3><a href={`https://github.com/${full}/pull/${pr.number}`} target="_blank" rel="noreferrer"><Octicon name="gear" size={14} /></a></div>
+            <div className="side-section-head">
+              <h3>负责人</h3>
+              <button className="side-gear" onClick={() => setAssigneesOpen(true)} aria-label="编辑负责人"><Octicon name="gear" size={14} /></button>
+            </div>
             {(pr.assignees || []).length > 0 ? (
               <div className="side-people">
                 {pr.assignees!.map((a) => <a key={a.login} href={`#/user/${a.login}`} className="side-person"><Avatar user={a} size={20} /> {a.login}</a>)}
@@ -339,7 +345,10 @@ export function PullPage({
             ) : <span className="side-empty">未分配</span>}
           </div>
           <div className="side-section">
-            <div className="side-section-head"><h3>标签</h3><a href={`https://github.com/${full}/labels`} target="_blank" rel="noreferrer"><Octicon name="gear" size={14} /></a></div>
+            <div className="side-section-head">
+              <h3>标签</h3>
+              <button className="side-gear" onClick={() => setLabelsOpen(true)} aria-label="编辑标签"><Octicon name="gear" size={14} /></button>
+            </div>
             <div className="side-labels">
               {(pr.labels || []).length ? pr.labels.map((l) => <LabelPill key={l.id || l.name} name={l.name} color={l.color} />) : <span className="side-empty">暂无</span>}
             </div>
@@ -377,6 +386,28 @@ export function PullPage({
           }}
         />
       )}
+
+      {labelsOpen && (
+        <LabelsDialog
+          full={full}
+          number={pr.number}
+          current={pr.labels || []}
+          onClose={() => setLabelsOpen(false)}
+          onSaved={() => { prState.reload(); showToast('标签已更新', 'success') }}
+        />
+      )}
+
+      {assigneesOpen && (
+        <AssigneesDialog
+          full={full}
+          number={pr.number}
+          current={pr.assignees || []}
+          onClose={() => setAssigneesOpen(false)}
+          onSaved={() => { prState.reload(); showToast('负责人已更新', 'success') }}
+        />
+      )}
+
+      {commitSha && <CommitDialog full={full} sha={commitSha} onClose={() => setCommitSha(null)} />}
     </div>
   )
 }

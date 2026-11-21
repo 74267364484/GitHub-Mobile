@@ -37,6 +37,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
 import android.graphics.Typeface
 import android.widget.Toast
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
 
 class MainActivity : ComponentActivity() {
@@ -50,6 +51,8 @@ class MainActivity : ComponentActivity() {
     private var splashHidden = false
     private var pendingDownload: PendingDownload? = null
     private var pendingDirId: String? = null
+    private val pendingLinks = mutableListOf<String>()
+    private var webReady = false
 
     private data class PendingDownload(val id: String, val url: String, val name: String, val accept: String)
 
@@ -133,9 +136,60 @@ class MainActivity : ComponentActivity() {
             }
         }
         webView.addJavascriptInterface(bridge, "OctoDeck")
+        bridge.onWebReady = {
+            runOnUiThread {
+                webReady = true
+                flushPendingLinks()
+            }
+        }
         webView.loadUrl(APP_URL)
+        handleDeepLinkIntent(intent)
 
         onBackPressedDispatcher.addCallback(this) { handleBack() }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLinkIntent(intent)
+    }
+
+    private fun handleDeepLinkIntent(intent: Intent?) {
+        if (intent == null) return
+        when (intent.action) {
+            Intent.ACTION_VIEW -> intent.data?.toString()?.let { enqueueDeepLink(it) }
+            Intent.ACTION_SEND -> {
+                val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+                if (text.isNotBlank()) {
+                    val matches = GITHUB_URL_RE.findAll(text).map { it.value }.toList()
+                    if (matches.isNotEmpty()) {
+                        matches.forEach { enqueueDeepLink(it) }
+                    } else {
+                        val bare = BARE_GITHUB_RE.find(text)?.value
+                        if (bare != null) enqueueDeepLink("https://$bare")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun enqueueDeepLink(url: String) {
+        if (url.isBlank()) return
+        pendingLinks.add(url)
+        flushPendingLinks()
+    }
+
+    private fun flushPendingLinks() {
+        if (!webReady || pendingLinks.isEmpty()) return
+        val batch = pendingLinks.toList()
+        pendingLinks.clear()
+        for (url in batch) {
+            val script = "window.__octoOpenUrl && window.__octoOpenUrl(${JSONObject.quote(url)})"
+            try {
+                webView.evaluateJavascript(script, null)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun buildSplash() {
@@ -205,7 +259,7 @@ class MainActivity : ComponentActivity() {
             javaScriptCanOpenWindowsAutomatically = false
             loadsImagesAutomatically = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = userAgentString + " GitHub Mobile/1.5 Android"
+            userAgentString = userAgentString + " GitHub Mobile/1.6 Android"
         }
 
         val assetLoader = WebViewAssetLoader.Builder()
@@ -227,8 +281,18 @@ class MainActivity : ComponentActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
                 if (uri.host == "appassets.androidplatform.net") return false
+                val host = uri.host.orEmpty().lowercase()
+                if (host == "github.com" || host == "www.github.com" || host == "gist.github.com") {
+                    enqueueDeepLink(uri.toString())
+                    return true
+                }
                 openExternal(uri)
                 return true
+            }
+
+            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                webReady = false
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -324,6 +388,15 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val APP_URL = "https://appassets.androidplatform.net/assets/www/index.html"
+
+        private val GITHUB_URL_RE = Regex(
+            """https?://(?:www\.)?(?:gist\.)?github\.com/[^\s<>"']+""",
+            RegexOption.IGNORE_CASE,
+        )
+        private val BARE_GITHUB_RE = Regex(
+            """(?:www\.)?(?:gist\.)?github\.com/[^\s<>"']+""",
+            RegexOption.IGNORE_CASE,
+        )
 
         private val BACK_JS = """
             (function () {

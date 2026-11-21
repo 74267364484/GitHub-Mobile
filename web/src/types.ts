@@ -92,7 +92,7 @@ export interface Issue {
   body?: string | null
   pull_request?: unknown
   assignees?: GitHubUser[]
-  milestone?: { title: string } | null
+  milestone?: { number?: number; title: string } | null
   repository_url?: string
   draft?: boolean
 }
@@ -184,6 +184,28 @@ export interface WorkflowRun {
   html_url: string
   head_commit?: { message: string; author?: { name?: string } } | null
   actor?: GitHubUser
+}
+
+export interface GistFile {
+  filename: string
+  type?: string
+  language?: string | null
+  raw_url?: string
+  size?: number
+  content?: string
+  truncated?: boolean
+}
+
+export interface Gist {
+  id: string
+  description: string | null
+  public: boolean
+  owner?: GitHubUser | null
+  files: Record<string, GistFile>
+  html_url: string
+  created_at: string
+  updated_at: string
+  comments?: number
 }
 
 export interface Notification {

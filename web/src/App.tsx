@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AppProvider, useApp } from './state/AppState'
 import { Header } from './components/Header'
 import { LeftRail } from './components/LeftRail'
 import { Octicon } from './components/Octicon'
 import { LoadingBar } from './components/LoadingBar'
 import { DownloadTray } from './components/DownloadTray'
+import { DeepLinkDialog } from './components/DeepLinkDialogs'
 import { initNativeDownloadEvents } from './lib/downloads'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthPage, AuthLoading } from './pages/AuthPage'
@@ -14,11 +15,14 @@ import { RepositoriesPage } from './pages/RepositoriesPage'
 import { GlobalIssuesPage } from './pages/GlobalIssuesPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { ExplorePage } from './pages/ExplorePage'
+import { GistsPage, GistDetailPage } from './pages/GistsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
 import { AppSettingsPage } from './pages/AppSettingsPage'
 import { RepoRoute } from './pages/RepoRoute'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { openExternal } from './lib/api'
+import { openGithubPage, parseDeepLink, type DeepLinkAction } from './lib/deeplink'
 import type { Route } from './lib/router'
 
 function Page({ route }: { route: Route }) {
@@ -29,6 +33,8 @@ function Page({ route }: { route: Route }) {
     case 'global-pulls': return <GlobalIssuesPage mode="pulls" />
     case 'notifications': return <NotificationsPage />
     case 'explore': return <ExplorePage />
+    case 'gists': return <GistsPage />
+    case 'gist': return <GistDetailPage id={route.id} />
     case 'profile': return <ProfilePage />
     case 'search': return <SearchPage />
     case 'settings': return <AppSettingsPage />
@@ -87,14 +93,60 @@ function useShortcuts(enabled: boolean) {
 }
 
 function Shell() {
-  const { loading, source, fatal, toast, setDrawerOpen, drawerOpen, exitDemo, user, config } = useApp()
+  const { loading, source, fatal, toast, setDrawerOpen, drawerOpen, exitDemo, user, config, showToast } = useApp()
   const route = useRoute()
   const key = routeKey(route)
+  const [linkDialog, setLinkDialog] = useState<DeepLinkAction | null>(null)
   useShortcuts(source === 'live' || source === 'demo')
 
   useEffect(() => {
     initNativeDownloadEvents()
   }, [])
+
+  useEffect(() => {
+    const handle = (raw: string) => {
+      if (!raw) return
+      const action = parseDeepLink(raw)
+      switch (action.kind) {
+        case 'route':
+          navigate(action.href)
+          break
+        case 'web':
+          openGithubPage(action.url)
+          break
+        case 'external':
+          openExternal(action.url)
+          break
+        case 'invalid':
+          showToast(action.message, 'error')
+          break
+        default:
+          setLinkDialog(action)
+      }
+    }
+
+    const onOpenUrl = (e: Event) => {
+      handle(String((e as CustomEvent).detail || ''))
+    }
+
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const target = e.target as HTMLElement | null
+      const anchor = target?.closest?.('a') as HTMLAnchorElement | null
+      if (!anchor) return
+      const href = anchor.getAttribute('href') || ''
+      if (!/^https?:\/\/(?:www\.)?(?:gist\.)?github\.com(?:\/|$)/i.test(href)) return
+      e.preventDefault()
+      handle(href)
+    }
+
+    window.addEventListener('octo-open-url', onOpenUrl as EventListener)
+    document.addEventListener('click', onClick, true)
+    return () => {
+      window.removeEventListener('octo-open-url', onOpenUrl as EventListener)
+      document.removeEventListener('click', onClick, true)
+    }
+  }, [showToast])
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -145,9 +197,9 @@ function Shell() {
             </ErrorBoundary>
           </div>
           <footer className="app-foot">
-            <span>GitHub Mobile v1.5.0</span>
+            <span>GitHub Mobile v1.6.0</span>
             <span>·</span>
-            <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="#/settings">设置</a>
             <span>·</span>
             <span>{user ? `@${user.login}` : '未登录'}</span>
           </footer>
@@ -155,6 +207,8 @@ function Shell() {
       </div>
 
       <DownloadTray />
+
+      {linkDialog && <DeepLinkDialog action={linkDialog} onClose={() => setLinkDialog(null)} />}
 
       {toast && (
         <div className={`toast toast-${toast.kind}`} role="status">

@@ -82,7 +82,7 @@ class OctoBridge(
             put("defaultRepo", "")
             put("host", hostState.get().toJson())
             put("native", true)
-            put("version", "1.5.0")
+            put("version", "1.6.0")
             put("proxy", false)
         }.toString()
     }
@@ -128,6 +128,47 @@ class OctoBridge(
         } catch (_: Exception) {
         }
     }
+
+    /** 在应用内的 GitHub 网页视图中打开 web-only 页面（登录、OAuth 授权、Token 管理等）。 */
+    @JavascriptInterface
+    fun openWebSheet(url: String) {
+        val uri = Uri.parse(url)
+        if (uri.scheme != "https") return
+        val host = uri.host.orEmpty().lowercase()
+        if (host != "github.com" && host != "www.github.com" && host != "gist.github.com" && host != "docs.github.com") {
+            return
+        }
+        try {
+            context.startActivity(
+                Intent(context, GitHubWebActivity::class.java)
+                    .putExtra("url", url)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        } catch (_: Exception) {
+        }
+    }
+
+    @JavascriptInterface
+    fun openLinkSettings() {
+        try {
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Intent(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, Uri.parse("package:${context.packageName}"))
+            } else {
+                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+            }
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (_: Exception) {
+        }
+    }
+
+    /** Web 应用完成 JS 初始化后调用，MainActivity 才会派发积压的深链。 */
+    @JavascriptInterface
+    fun markReady() {
+        onWebReady?.invoke()
+    }
+
+    /** MainActivity 注入：页面 JS 就绪。 */
+    var onWebReady: (() -> Unit)? = null
 
     // ---------------- async GitHub API ----------------
 

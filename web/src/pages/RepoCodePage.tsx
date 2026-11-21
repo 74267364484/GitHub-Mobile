@@ -18,7 +18,8 @@ import { Avatar } from '../components/Avatar'
 import { Markdown } from '../components/Markdown'
 import { BranchPicker } from '../components/BranchPicker'
 import { GoToFileDialog } from '../components/GoToFileDialog'
-import { FileDialog } from '../components/WriteDialogs'
+import { FileDialog, IssueDialog } from '../components/WriteDialogs'
+import { CommitDialog, CommitsDialog } from '../components/CommitDialogs'
 import { Button, Dialog, Dropdown, EmptyState, Skeleton } from '../components/ui'
 import { useApi } from '../lib/hooks'
 import { gh, invalidateCache, loadImage } from '../lib/api'
@@ -201,6 +202,10 @@ export function RepoCodePage({
   const [fileDialog, setFileDialog] = useState<'create' | 'edit' | 'upload' | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [commitsOpen, setCommitsOpen] = useState(false)
+  const [commitSha, setCommitSha] = useState<string | null>(null)
+  const [issueOpen, setIssueOpen] = useState(false)
+  const [peopleOpen, setPeopleOpen] = useState<'stars' | 'watchers' | null>(null)
 
   const requireLogin = (): boolean => {
     if (config?.hasToken) return true
@@ -368,9 +373,12 @@ export function RepoCodePage({
                 <div className="blob-meta-right">
                   <span>{fileState.data?.size != null ? formatBytes(fileState.data.size) : ''}</span>
                   {fileState.data?.content && <span>{fileText.split('\n').length} 行</span>}
-                  <a className="btn btn-sm btn-default" href={`https://raw.githubusercontent.com/${full}/${branch}/${encodePath(currentPath)}`} target="_blank" rel="noreferrer">
-                    <Octicon name="link-external" size={14} /> 在 GitHub 查看
-                  </a>
+                  <button
+                    className="btn btn-sm btn-default"
+                    onClick={() => copy(`https://raw.githubusercontent.com/${full}/${branch}/${encodePath(currentPath)}`, '原始文件链接已复制')}
+                  >
+                    <Octicon name="link" size={14} /> 复制原始链接
+                  </button>
                   <button className="btn btn-sm btn-default" onClick={() => startDownload({ kind: 'file', repo: full, ref: branch, path: currentPath })}>
                     <Octicon name="download" size={14} /> 下载文件
                   </button>
@@ -398,7 +406,7 @@ export function RepoCodePage({
                 </div>
               )}
               {!fileState.loading && !fileState.error && !fileText && !isImage(currentPath) && (
-                <div className="blob-empty">二进制或空文件，使用「原始文件」在 GitHub 查看</div>
+                <div className="blob-empty">二进制或空文件，可下载后在本地查看</div>
               )}
             </div>
           )}
@@ -409,12 +417,14 @@ export function RepoCodePage({
                 <div className="latest-commit bar">
                   <Avatar user={latest.author || undefined} login={latest.commit.author?.name} size={20} />
                   <span className="latest-commit-author">{latest.author?.login || latest.commit.author?.name}</span>
-                  <span className="latest-commit-msg">{firstLine(latest.commit.message, 80)}</span>
-                  <span className="latest-commit-sha">{latest.sha.slice(0, 7)}</span>
+                  <button className="latest-commit-msg latest-commit-msg-btn" onClick={() => setCommitSha(latest.sha)}>
+                    {firstLine(latest.commit.message, 80)}
+                  </button>
+                  <button className="latest-commit-sha latest-commit-sha-btn" onClick={() => setCommitSha(latest.sha)}>{latest.sha.slice(0, 7)}</button>
                   <span className="latest-commit-time">{timeAgo(latest.commit.author?.date)}</span>
-                  <a className="latest-commit-history" href={`https://github.com/${full}/commits/${encodeURIComponent(branch)}`} target="_blank" rel="noreferrer">
+                  <button className="latest-commit-history" onClick={() => setCommitsOpen(true)}>
                     <Octicon name="history" size={14} /> 历史
-                  </a>
+                  </button>
                 </div>
               )}
 
@@ -438,7 +448,7 @@ export function RepoCodePage({
                       <div className="file-commit-cell">
                         {c ? (
                           <>
-                            <a className="file-commit-msg" href={`https://github.com/${full}/commit/${c.sha}`} target="_blank" rel="noreferrer">{firstLine(c.commit.message, 64)}</a>
+                            <button className="file-commit-msg file-commit-msg-btn" onClick={() => setCommitSha(c.sha)}>{firstLine(c.commit.message, 64)}</button>
                             <span className="file-commit-author"><Avatar user={c.author || undefined} login={c.commit.author?.name} size={16} /> {c.author?.login || c.commit.author?.name || ''}</span>
                           </>
                         ) : c === null ? <span className="file-commit-empty">—</span> : commitsLoading ? <Skeleton width={160} height={14} /> : <span className="file-commit-empty">—</span>}
@@ -466,9 +476,9 @@ export function RepoCodePage({
                     </div>
                     <div className="readme-head-actions">
                       <span>{readmeData?.size != null ? formatBytes(readmeData.size) : ''}</span>
-                      <a className="btn btn-sm btn-default" href={`https://github.com/${full}/blob/${encodeURIComponent(branch)}/${encodePath(readmeData?.path || 'README.md')}`} target="_blank" rel="noreferrer">
+                      <button className="btn btn-sm btn-default" onClick={() => navigate(blobHref(owner, repoName, branch, readmeData?.path || 'README.md').slice(1))}>
                         <Octicon name="pencil" size={14} /> 编辑
-                      </a>
+                      </button>
                     </div>
                   </div>
                   <Markdown
@@ -500,20 +510,20 @@ export function RepoCodePage({
             {(repo.topics || []).length > 0 && (
               <div className="about-topics">
                 {repo.topics!.map((t) => (
-                  <a className="topic-tag" key={t} href={`https://github.com/topics/${encodeURIComponent(t)}`} target="_blank" rel="noreferrer">{t}</a>
+                  <a className="topic-tag" key={t} href={`#/search?q=${encodeURIComponent(`topic:${t}`)}&type=repositories`}>{t}</a>
                 ))}
               </div>
             )}
             <div className="about-stats">
-              <a href={`https://github.com/${full}/stargazers`} target="_blank" rel="noreferrer">
+              <button className="about-stat-btn" onClick={() => setPeopleOpen('stars')}>
                 <Octicon name="star" size={16} /> <strong>{compact(repo.stargazers_count)}</strong> 星标
-              </a>
-              <a href={`https://github.com/${full}/forks`} target="_blank" rel="noreferrer">
+              </button>
+              <button className="about-stat-btn" onClick={() => navigate(repoHref(owner, repoName, '/insights').slice(1))}>
                 <Octicon name="repo-forked" size={16} /> <strong>{compact(repo.forks_count)}</strong> 分叉
-              </a>
-              <a href={`https://github.com/${full}/watchers`} target="_blank" rel="noreferrer">
+              </button>
+              <button className="about-stat-btn" onClick={() => setPeopleOpen('watchers')}>
                 <Octicon name="eye" size={16} /> <strong>{compact(repo.watchers_count)}</strong> 关注
-              </a>
+              </button>
             </div>
             {repo.license && (
               <div className="about-row">
@@ -569,9 +579,9 @@ export function RepoCodePage({
           </div>
 
           <div className="about-section about-report">
-            <a href={`https://github.com/${full}/issues/new/choose`} target="_blank" rel="noreferrer">
+            <button className="about-report-btn" onClick={() => setIssueOpen(true)}>
               <Octicon name="report" size={16} /> 报告仓库
-            </a>
+            </button>
           </div>
         </aside>
       </div>
@@ -647,6 +657,79 @@ export function RepoCodePage({
           <p className="settings-paragraph">{currentPath}</p>
         </Dialog>
       )}
+
+      {commitsOpen && (
+        <CommitsDialog
+          full={full}
+          branch={branch}
+          onClose={() => setCommitsOpen(false)}
+        />
+      )}
+
+      {commitSha && (
+        <CommitDialog
+          full={full}
+          sha={commitSha}
+          onClose={() => setCommitSha(null)}
+        />
+      )}
+
+      {issueOpen && (
+        <IssueDialog
+          repo={full}
+          mode="create"
+          initialTitle=""
+          onClose={() => setIssueOpen(false)}
+          onSaved={(created) => {
+            setIssueOpen(false)
+            invalidateCache()
+            showToast(`议题 #${created.number} 已创建`, 'success')
+            navigate(`/${owner}/${repoName}/issues/${created.number}`)
+          }}
+        />
+      )}
+
+      {peopleOpen && (
+        <RepoPeopleDialog
+          full={full}
+          kind={peopleOpen}
+          onClose={() => setPeopleOpen(null)}
+        />
+      )}
     </div>
+  )
+}
+
+function RepoPeopleDialog({
+  full, kind, onClose,
+}: {
+  full: string
+  kind: 'stars' | 'watchers'
+  onClose: () => void
+}) {
+  const path = kind === 'stars'
+    ? `/repos/${full}/stargazers?per_page=100`
+    : `/repos/${full}/subscribers?per_page=100`
+  const state = useApi<GitHubUser[]>(path)
+
+  return (
+    <Dialog
+      title={kind === 'stars' ? '星标用户' : '关注者'}
+      subtitle={full}
+      onClose={onClose}
+      width={480}
+    >
+      {state.loading && <Skeleton height={120} />}
+      {state.error && <div className="form-error">{state.error.message}</div>}
+      <div className="people-list-dialog">
+        {(state.data || []).map((u) => (
+          <a className="people-list-row" key={u.id} href={`#/user/${u.login}`}>
+            <Avatar user={u} size={28} />
+            <span>{u.login}</span>
+          </a>
+        ))}
+        {!state.loading && !state.error && (state.data || []).length === 0 && <p className="muted">暂无用户。</p>}
+      </div>
+    </Dialog>
   )
 }

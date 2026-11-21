@@ -113,7 +113,7 @@ export function SearchPage() {
               {(r.topics || []).length > 0 && (
                 <div className="about-topics">
                   {r.topics!.slice(0, 6).map((t) => (
-                    <a className="topic-tag" key={t} href={`https://github.com/topics/${t}`} target="_blank" rel="noreferrer">{t}</a>
+                    <a className="topic-tag" key={t} href={`#/search?q=${encodeURIComponent(`topic:${t}`)}&type=repositories`}>{t}</a>
                   ))}
                 </div>
               )}
@@ -134,7 +134,6 @@ export function SearchPage() {
               <div className="search-user-main">
                 <a className="search-result-title" href={`#/user/${u.login}`}>{u.login}</a>
                 <span className="search-user-type">{u.type === 'Organization' ? '组织' : '用户'}</span>
-                <a className="search-user-link" href={u.html_url} target="_blank" rel="noreferrer">在 GitHub 查看 <Octicon name="link-external" size={12} /></a>
               </div>
             </div>
           ))}

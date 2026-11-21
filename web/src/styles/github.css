@@ -406,7 +406,6 @@ textarea.form-input { resize: vertical; }
 /* ---------------- Dialog ---------------- */
 .dialog-backdrop {
   position: fixed;
-  inset: 0;
   top: 0;
   right: 0;
   bottom: 0;
@@ -719,7 +718,6 @@ textarea.form-input { resize: vertical; }
 .search-hint { padding: 8px 12px 2px; font-size: 11px; color: var(--fg-subtle); }
 .mobile-search-overlay {
   position: fixed;
-  inset: 0;
   top: 0;
   right: 0;
   bottom: 0;
@@ -729,7 +727,7 @@ textarea.form-input { resize: vertical; }
 }
 .mobile-search-inner { display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid var(--border-default); }
 .mobile-search-cancel { color: var(--accent-fg); background: transparent; border: 0; font-size: 14px; cursor: pointer; white-space: nowrap; }
-.mobile-search-backdrop { position: absolute; inset: 0; }
+.mobile-search-backdrop { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
 .search-box-mobile .search-panel { position: fixed; top: 56px; left: 12px; right: 12px; width: auto; }
 
 /* ---------------- Left rail ---------------- */
@@ -1663,7 +1661,7 @@ textarea.form-input { resize: vertical; }
 .insight-head a { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
 .community-progress { flex: none; }
 .community-ring { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
-.community-ring::before { content: ""; position: absolute; inset: 6px; top: 6px; right: 6px; bottom: 6px; left: 6px; background: var(--bg-default); border-radius: 50%; }
+.community-ring::before { content: ""; position: absolute; top: 6px; right: 6px; bottom: 6px; left: 6px; background: var(--bg-default); border-radius: 50%; }
 .community-ring span { position: relative; font-size: 13px; font-weight: 600; }
 .community-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 20px; }
 .community-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
@@ -2208,11 +2206,10 @@ a.repo-meta-item:hover { color: var(--accent-fg); }
   .rail-backdrop {
     display: block;
     position: fixed;
-    inset: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: 310;
     background: rgba(31, 35, 40, 0.5);
     animation: fade-in 0.15s ease;
@@ -2839,3 +2836,103 @@ a.demo-banner-action { text-decoration: none; display: inline-flex; align-items:
 .traffic-bar { flex: 1; display: flex; align-items: flex-end; height: 100%; background: var(--bg-inset); border-radius: 2px; overflow: hidden; }
 .traffic-bar span { width: 100%; background: var(--success-emphasis); border-radius: 2px; }
 .frequency-bars { height: 70px; }
+
+/* ============================================================
+   v1.6 · deep links, in-app web, gists, metadata editors
+   ============================================================ */
+.actions-head-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.actions-head-actions .btn { white-space: nowrap; }
+button.starter-card { background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.community-add { margin-left: auto; font-size: 12px; color: var(--accent-fg); background: none; border: 0; cursor: pointer; padding: 0; }
+.community-add:hover { text-decoration: underline; }
+.side-gear { display: inline-flex; align-items: center; color: var(--fg-muted); background: none; border: 0; padding: 0; cursor: pointer; }
+.side-gear:hover { color: var(--accent-fg); }
+
+.oauth-dialog { display: flex; flex-direction: column; gap: 12px; }
+.oauth-copy-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: 6px; }
+.oauth-copy-label { font-size: 11px; font-weight: 600; color: var(--fg-muted); min-width: 46px; text-transform: uppercase; }
+.oauth-copy-value { flex: 1; min-width: 0; font-size: 12px; word-break: break-all; }
+.oauth-facts { display: flex; flex-direction: column; gap: 6px; }
+.oauth-fact { display: flex; align-items: baseline; gap: 8px; font-size: 12px; }
+.oauth-fact > span { min-width: 72px; color: var(--fg-muted); }
+.oauth-fact code { word-break: break-all; }
+.oauth-scopes { display: flex; flex-direction: column; gap: 6px; }
+.oauth-scope-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.oauth-scope { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--bg-inset); border: 1px solid var(--border-default); font-family: ui-monospace, monospace; }
+
+.label-picker { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow: auto; margin-top: 8px; }
+.label-picker-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.label-picker-item:hover, .label-picker-item.selected { background: var(--bg-muted); }
+.label-picker-desc { font-size: 11px; color: var(--fg-muted); margin-left: auto; text-align: right; }
+.people-picker { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow: auto; margin-top: 8px; }
+.people-picker-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.people-picker-item:hover, .people-picker-item.selected { background: var(--bg-muted); }
+.people-list-dialog { display: flex; flex-direction: column; gap: 2px; max-height: 420px; overflow: auto; }
+.people-list-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; color: var(--fg-default); font-size: 13px; }
+.people-list-row:hover { background: var(--bg-muted); text-decoration: none; }
+
+.profile-count-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--fg-default); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.profile-count-btn:hover { color: var(--accent-fg); }
+.profile-count-btn strong { font-weight: 600; }
+
+.commit-msg-button, .file-commit-msg-btn, .latest-commit-msg-btn, .latest-commit-sha-btn {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left;
+}
+.commit-msg-button:hover, .file-commit-msg-btn:hover, .latest-commit-msg-btn:hover, .latest-commit-sha-btn:hover { color: var(--accent-fg); text-decoration: underline; }
+.commit-row-button { width: 100%; background: none; border: 0; border-top: 1px solid var(--border-default); font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.commit-row-button:first-child { border-top: 0; }
+.commit-row-button:hover { background: var(--bg-muted); }
+.commit-detail { display: flex; flex-direction: column; gap: 14px; }
+.commit-detail-head { display: flex; gap: 10px; align-items: flex-start; }
+.commit-detail-main { min-width: 0; }
+.commit-detail-msg { font-weight: 600; font-size: 14px; word-break: break-word; }
+.commit-detail-meta { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+.commit-detail-body { white-space: pre-wrap; font-size: 12px; background: var(--bg-inset); border: 1px solid var(--border-default); border-radius: 6px; padding: 10px; overflow: auto; }
+.commit-detail-files { display: flex; flex-direction: column; gap: 2px; }
+.commit-detail-files-head { display: flex; align-items: center; gap: 10px; font-size: 12px; padding-bottom: 4px; border-bottom: 1px solid var(--border-default); margin-bottom: 4px; }
+.commit-detail-file { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 2px; }
+.commit-detail-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; }
+
+.gists-page { display: flex; flex-direction: column; gap: 12px; }
+.gist-list { display: flex; flex-direction: column; }
+.gist-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--border-default); color: var(--fg-default); }
+.gist-row:first-child { border-top: 0; }
+.gist-row:hover { background: var(--bg-muted); text-decoration: none; }
+.gist-icon { color: var(--fg-muted); }
+.gist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gist-title { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gist-meta { font-size: 11px; color: var(--fg-muted); }
+.gist-files { font-size: 11px; color: var(--fg-muted); max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gist-detail { display: flex; flex-direction: column; gap: 12px; }
+.gist-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.gist-detail-main { min-width: 0; }
+.gist-detail-main h1 { font-size: 18px; word-break: break-word; }
+.gist-detail-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
+.gist-detail-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.gist-file-head { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border-default); font-size: 12px; }
+.gist-file-name { font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.gist-file-size { margin-left: auto; color: var(--fg-muted); font-size: 11px; }
+.gist-file-content { margin: 0; padding: 12px 14px; font-size: 12px; line-height: 1.5; overflow: auto; max-height: 60vh; white-space: pre; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+.settings-nav-foot button { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 0; color: var(--fg-muted); font: inherit; font-size: 11px; cursor: pointer; }
+.settings-nav-foot button:hover { color: var(--accent-fg); }
+.settings-inline-link { background: none; border: 0; padding: 0; color: var(--accent-fg); font: inherit; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.link-test-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.link-test-row .form-input { flex: 1; min-width: 200px; }
+.about-stat-btn, .about-report-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--fg-default); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.about-stat-btn:hover, .about-report-btn:hover { color: var(--accent-fg); }
+.auth-help-link { background: none; border: 0; padding: 0; color: var(--accent-fg); font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+.auth-help-link:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .gist-files { display: none; }
+  .label-picker-desc { display: none; }
+  .actions-head-actions .btn span { display: none; }
+}
+
+/* button resets for converted links */
+.release-external { background: none; border: 0; padding: 0; cursor: pointer; display: inline-flex; }
+.latest-commit-history { background: none; border: 0; padding: 0; cursor: pointer; color: var(--accent-fg); }
+.latest-commit-history:hover { text-decoration: underline; }
+.auth-help-link { font-weight: 600; justify-content: center; }
+.about-report-btn { color: var(--fg-muted); }
+.about-report-btn:hover { color: var(--accent-fg); }
